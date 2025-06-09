@@ -28,13 +28,13 @@ This documentation provides instructions for using various different Workfront A
 
 ### General Guides
 
-[Authenticate and access Workfront APIs](guides/dummy_oauth_client/)
+[Setup API Credentials and Access](guides/gaining_access/)
 
 Follow this tutorial to gather the required authentication credentials for all Workfront APIs
 
 <DiscoverBlock slots="link, text"/>
 
-[API Domains](guides/dummy_using_postman/)
+[API Domains](https://experienceleague.adobe.com/en/docs/workfront/using/adobe-workfront-api/tips-troubleshooting-apis/locate-domain-for-api)
 
 Follow this tutorial to understand API domains
 
@@ -43,25 +43,25 @@ Follow this tutorial to understand API domains
 ### API References
 
 
-[Workfront Workflow (Traditional Workfront) API](api/)
+[Workfront Workflow API](https://experienceleague.adobe.com/en/docs/workfront/using/adobe-workfront-api/workfront-api)
 
-Used to manage your Projects, Tasks, and Issues
+This is the traditional /attask API used to manage your Projects, Tasks, and Issues and other traditional Workfront resources.
 
 <DiscoverBlock slots="link, text"/>
 
-[Workfront Planning API](references/audit-query.md)
+[Workfront Planning API](api/planning)
 
 Used to manage your Planning workspaces, record types, and records
 
 <DiscoverBlock slots="link, text"/>
 
-[Unified Review and Approvals API](references/audit-query.md)
+[Unified Review and Approvals API](api/audit-query.md)
 
 Used to manage the Review and Approval objects
 
 <DiscoverBlock slots="link, text"/>
 
-[Legacy ProofHQ API](references/audit-query.md)
+[Legacy ProofHQ API](https://api.proofhq.com/)
 
 Used to manage the Review and Approval objects
 
