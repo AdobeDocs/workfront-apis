@@ -45,7 +45,7 @@ Follow this tutorial to understand API domains
 
 [Workfront Workflow API](https://experienceleague.adobe.com/en/docs/workfront/using/adobe-workfront-api/workfront-api)
 
-This is the traditional /attask API used to manage your Projects, Tasks, and Issues and other traditional Workfront resources.
+This is the traditional /attask API used to manage your Projects, Tasks, and Issues and other traditional Workfront resources. 
 
 <DiscoverBlock slots="link, text"/>
 
