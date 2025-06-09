@@ -61,8 +61,7 @@ Used to manage the Review and Approval objects
 
 <DiscoverBlock slots="link, text"/>
 
-[Legacy ProofHQ API](references/audit-query.md)
+[Legacy ProofHQ API](https://experienceleague.adobe.com/en/docs/workfront/using/review-and-approve-work/proofing/proofing)
 
-Used to manage the Review and Approval objects
-
+Get started with the legacy ProofHQ API.
 
