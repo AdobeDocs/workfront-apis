@@ -30,13 +30,13 @@ This documentation provides instructions for using various different Workfront A
 
 [Setup API Credentials and Access](guides/gaining_access/)
 
-Follow this tutorial to gather the required authentication credentials for all Workfront APIs
+Guide for how to setup your Authentication credentials and gain access to the API's
 
 <DiscoverBlock slots="link, text"/>
 
 [API Domains](https://experienceleague.adobe.com/en/docs/workfront/using/adobe-workfront-api/tips-troubleshooting-apis/locate-domain-for-api)
 
-Follow this tutorial to understand API domains
+Guide that includes the details of what domain you use for API calls.
 
 <DiscoverBlock slots="heading, link, text"/>
 

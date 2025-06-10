@@ -26,14 +26,16 @@ module.exports = {
         title: 'API Reference',
         menu: [
           {
-            title: 'Accessing Workfront APIs',
-            description: 'Accessing Workfront APIs',
-            path: '/api/index.md'
+            title: 'Adobe Workflow API',
+            path: 'https://experienceleague.adobe.com/en/docs/workfront/using/adobe-workfront-api/workfront-api'
           },
           {
-            title: 'Cat Reference v1.4',
-            description: 'Cat API Spec',
-            path: '/api/1.4.md'
+            title: 'Adobe Planning API',
+            path: '/api/planning'
+          },
+          {
+            title: 'Review and Approvals API',
+            path: '/api/approvals'
           }
         ]
       }
