@@ -1,1 +1,1 @@
-{"componentChunkName":"component---src-pages-api-workflow-md","path":"/api/workflow/","result":{"pageContext":{"frontmatter":{"title":"Workflow API","description":"Workflow API instructions","openAPISpec":"/openAPI.json"}}},"staticQueryHashes":["1440646406","1814815295","3508090095"]}
+{"componentChunkName":"component---src-pages-api-workflow-md","path":"/api/workflow/","result":{"pageContext":{"frontmatter":{"title":"Workflow API","description":"Workflow API instructions","openAPISpec":"/workflow.json"}}},"staticQueryHashes":["1440646406","1814815295","3508090095"]}
