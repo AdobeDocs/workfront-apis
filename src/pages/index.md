@@ -55,14 +55,9 @@ Used to manage your Planning workspaces, record types, and records
 
 <DiscoverBlock slots="link, text"/>
 
-[Unified Review and Approvals API](api/audit-query.md)
+[Unified Review and Approvals API](approvals)
 
 Used to manage the Review and Approval objects
 
 <DiscoverBlock slots="link, text"/>
-
-
-[Legacy ProofHQ API](https://experienceleague.adobe.com/en/docs/workfront/using/review-and-approve-work/proofing/proofing)
-
-Get started with the legacy ProofHQ API.
 
