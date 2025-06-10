@@ -1,0 +1,1359 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Unified Approvals Service",
+    "version": "1.0",
+    "description": "Provides a unified interface for managing approvals across different asset types. https://experienceleague.adobe.com/en/docs/workfront/using/review-and-approve-work/work-approvals/manage-approvals",
+    "contact": {
+      "name": "",
+      "email": "",
+      "url": ""
+    }
+  },
+  "servers": [
+    { "url": "" },
+    { "url": "", "description": "" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "wf-auth": { "type": "apiKey", "in": "cookie", "name": "wf-auth" },
+      "ims-auth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "parameters": {},
+    "responses": {},
+    "schemas": {}
+  },
+  "paths": {
+    "/public/api/v1/approvals/{assetType}/{assetId}": {
+      "parameters": [
+        {
+          "name": "AssetType",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "The type of the entity",
+            "enum": ["DOCV"],
+            "example": "DOCV"
+          }
+        },
+        {
+          "description": "The id of the asset being approved",
+          "schema": {
+            "type": "string",
+            "pattern": "^[\\w-:|~]+$",
+            "example": "673fc29b0006af515e33732d1ebdc39a"
+          },
+          "name": "assetId",
+          "in": "path",
+          "required": true
+        },
+        {
+          "in": "header",
+          "name": "wf-userid",
+          "description": "The WF user id of the user making the request",
+          "schema": {
+            "type": "string",
+            "pattern": "^\\w+$",
+            "example": "622b991a003653931d3bcc448f15595d"
+          }
+        },
+        {
+          "in": "header",
+          "name": "wf-customerid",
+          "description": "The WF customer id of the user making the request",
+          "schema": {
+            "type": "string",
+            "pattern": "^\\w+$",
+            "example": "622b991a003653931d3bcc448f15595d"
+          }
+        },
+        {
+          "in": "header",
+          "name": "wf-lane",
+          "description": "The lane for which the request is being made (ie devtest)",
+          "schema": {
+            "type": "string",
+            "example": "devtest"
+          }
+        },
+        {
+          "in": "header",
+          "name": "wf-subdomain",
+          "description": "The customer's subdomain",
+          "schema": {
+            "type": "string",
+            "example": "hub"
+          }
+        },
+        {
+          "in": "header",
+          "name": "x-product-id",
+          "description": "This is the product name where the request is coming from",
+          "schema": {
+            "type": "string",
+            "example": "workfront"
+          }
+        },
+        {
+          "in": "header",
+          "name": "x-eauth-tenant-id",
+          "description": "The auth tenant ID tied to the IMS Org ID where the request is coming from",
+          "schema": {
+            "type": "string",
+            "example": "23v195F66C8C84F0A494025@AdobeOrg"
+          }
+        }
+      ],
+      "get": {
+        "summary": "Get Approval details for an asset",
+        "description": "Get Approval details for a particular asset by sending asset ID and asset type. Restricted to allowed public users",
+        "security": [{ "ims-auth": [] }],
+        "tags": ["Public"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "The basic approval response object with all details",
+                  "title": "Approval response",
+                  "properties": {
+                    "approvalGuid": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "6744feadafbbfb97a7c1c325"
+                    },
+                    "assetId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "assetType": {
+                      "type": "string",
+                      "description": "The type of the entity",
+                      "enum": ["DOCV"],
+                      "example": "DOCV"
+                    },
+                    "creatorId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "66cf5cec0002204507c8ce6d532dfc08"
+                    },
+                    "customerDomain": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The customer domain",
+                      "example": "hub"
+                    },
+                    "templateId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "productId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "genstudio"
+                    },
+                    "imsOrgId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "1269195F66C8C84F0A494025@AdobeOrg"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "not started",
+                        "in review",
+                        "opened",
+                        "notified",
+                        "approved",
+                        "approved with changes",
+                        "needs work",
+                        "pending approval",
+                        "pending review",
+                        "reviewed",
+                        "withdrawn"
+                      ]
+                    },
+                    "isLocked": {
+                      "type": "boolean",
+                      "description": "Rollup of the stages isLocked field. If all stages are locked, this will be true, otherwise this will be false"
+                    },
+                    "decisionDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "operationId": "get-api-v1-approvals-public"
+      }
+    },
+    "/public/api/v1/approvals/{assetType}/{assetId}/decisions": {
+      "parameters": [
+        {
+          "name": "AssetType",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "The type of the entity",
+            "enum": ["DOCV"],
+            "example": "DOCV"
+          }
+        },
+        {
+          "description": "The id of the asset being approved",
+          "schema": {
+            "type": "string",
+            "pattern": "^[\\w-:|~]+$",
+            "example": "673fc29b0006af515e33732d1ebdc39a"
+          },
+          "name": "assetId",
+          "in": "path",
+          "required": true
+        },
+        {
+          "in": "header",
+          "name": "wf-userid",
+          "description": "The WF user id of the user making the request",
+          "schema": {
+            "type": "string",
+            "pattern": "^\\w+$",
+            "example": "622b991a003653931d3bcc448f15595d"
+          }
+        },
+        {
+          "in": "header",
+          "name": "wf-customerid",
+          "description": "The WF customer id of the user making the request",
+          "schema": {
+            "type": "string",
+            "pattern": "^\\w+$",
+            "example": "622b991a003653931d3bcc448f15595d"
+          }
+        },
+        {
+          "in": "header",
+          "name": "wf-lane",
+          "description": "The lane for which the request is being made (ie devtest)",
+          "schema": {
+            "type": "string",
+            "example": "devtest"
+          }
+        },
+        {
+          "in": "header",
+          "name": "wf-subdomain",
+          "description": "The customer's subdomain",
+          "schema": {
+            "type": "string",
+            "example": "hub"
+          }
+        },
+        {
+          "in": "header",
+          "name": "x-product-id",
+          "description": "This is the product name where the request is coming from",
+          "schema": {
+            "type": "string",
+            "example": "workfront"
+          }
+        },
+        {
+          "in": "header",
+          "name": "x-eauth-tenant-id",
+          "description": "The auth tenant ID tied to the IMS Org ID where the request is coming from",
+          "schema": {
+            "type": "string",
+            "example": "23v195F66C8C84F0A494025@AdobeOrg"
+          }
+        }
+      ],
+      "put": {
+        "summary": "Allows to make a decision on an approval. For single stage approvals.",
+        "description": "Make a decision on a stage. If the decision is already made, it will be updated. Overall stage and approval status will be updated based on the decision and other participants. Throws an error if the approval is not found or if participant is not allowed.",
+        "operationId": "public-put-api-v1-approvals-assetType-assetId-decisions",
+        "security": [{ "ims-auth": [] }],
+        "tags": ["Public"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "The basic approval response object with all details",
+                  "title": "Approval response",
+                  "properties": {
+                    "approvalGuid": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "6744feadafbbfb97a7c1c325"
+                    },
+                    "assetId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "assetType": {
+                      "type": "string",
+                      "description": "The type of the entity",
+                      "enum": ["DOCV"],
+                      "example": "DOCV"
+                    },
+                    "creatorId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "66cf5cec0002204507c8ce6d532dfc08"
+                    },
+                    "customerDomain": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The customer domain",
+                      "example": "hub"
+                    },
+                    "templateId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "productId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "genstudio"
+                    },
+                    "imsOrgId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "1269195F66C8C84F0A494025@AdobeOrg"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "not started",
+                        "in review",
+                        "opened",
+                        "notified",
+                        "approved",
+                        "approved with changes",
+                        "needs work",
+                        "pending approval",
+                        "pending review",
+                        "reviewed",
+                        "withdrawn"
+                      ]
+                    },
+                    "isLocked": {
+                      "type": "boolean",
+                      "description": "Rollup of the stages isLocked field. If all stages are locked, this will be true, otherwise this will be false"
+                    },
+                    "decisionDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "DecisionBody",
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "enum": ["needs work", "approved with changes", "approved", "reviewed"]
+                  },
+                  "stageIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "nullable": true,
+                      "pattern": "^[\\w-:]+$",
+                      "minLength": 24,
+                      "example": "e7ccf939Dc491892dV89e122bTb8fa128bd"
+                    }
+                  }
+                },
+                "required": ["decision"]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/api/v1/approvals/{assetType}/{assetId}/participants": {
+      "parameters": [
+        {
+          "name": "AssetType",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "The type of the entity",
+            "enum": ["DOCV"],
+            "example": "DOCV"
+          }
+        },
+        {
+          "description": "The id of the asset being approved",
+          "schema": {
+            "type": "string",
+            "pattern": "^[\\w-:|~]+$",
+            "example": "673fc29b0006af515e33732d1ebdc39a"
+          },
+          "name": "assetId",
+          "in": "path",
+          "required": true
+        },
+        {
+          "in": "header",
+          "name": "x-gw-ims-org-id",
+          "description": "The IMS Org ID where the request is coming from",
+          "schema": {
+            "type": "string",
+            "example": "1269195F66C8C84F0A494025@AdobeOrg"
+          }
+        },
+        {
+          "in": "header",
+          "name": "x-gw-user-id",
+          "description": "The requesting user ID",
+          "schema": {
+            "type": "string",
+            "example": "59281F01631245820A49421E@0000000000000000000000.e"
+          }
+        }
+      ],
+      "put": {
+        "security": [{ "wf-auth": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "The basic approval response object with all details",
+                  "title": "Approval response",
+                  "properties": {
+                    "approvalGuid": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "6744feadafbbfb97a7c1c325"
+                    },
+                    "assetId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "assetType": {
+                      "type": "string",
+                      "description": "The type of the entity",
+                      "enum": ["DOCV"],
+                      "example": "DOCV"
+                    },
+                    "creatorId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "66cf5cec0002204507c8ce6d532dfc08"
+                    },
+                    "customerDomain": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The customer domain",
+                      "example": "hub"
+                    },
+                    "templateId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "productId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "genstudio"
+                    },
+                    "imsOrgId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "1269195F66C8C84F0A494025@AdobeOrg"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "not started",
+                        "in review",
+                        "opened",
+                        "notified",
+                        "approved",
+                        "approved with changes",
+                        "needs work",
+                        "pending approval",
+                        "pending review",
+                        "reviewed",
+                        "withdrawn"
+                      ]
+                    },
+                    "isLocked": {
+                      "type": "boolean",
+                      "description": "Rollup of the stages isLocked field. If all stages are locked, this will be true, otherwise this will be false"
+                    },
+                    "decisionDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "title": "MultiStagesParticipantsBody",
+                  "type": "object",
+                  "properties": {
+                    "stageId": {
+                      "type": "string",
+                      "nullable": true,
+                      "pattern": "^[\\w-:]+$",
+                      "minLength": 24,
+                      "example": "e7ccf939Dc491892dV89e122bTb8fa128bd"
+                    },
+                    "participants": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "title": "AddParticipantBody",
+                        "type": "object",
+                        "description": "Participant details",
+                        "properties": {
+                          "participantId": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": "66cf5cec0002204507c8ce6d532dfc08"
+                          },
+                          "participantType": {
+                            "type": "string",
+                            "enum": ["USER", "TEAMOB"],
+                            "example": "USER"
+                          },
+                          "participantRole": {
+                            "type": "string",
+                            "enum": ["approver", "reviewer"],
+                            "example": "approver"
+                          },
+                          "participantMetadata": {
+                            "type": "object",
+                            "additionalProperties": {
+                              "oneOf": [
+                                { "type": "string" },
+                                { "type": "number" },
+                                { "type": "boolean" },
+                                { "type": "array" },
+                                { "type": "object" }
+                              ]
+                            }
+                          }
+                        },
+                        "required": ["participantId", "participantType", "participantRole"]
+                      }
+                    }
+                  },
+                  "required": ["stageId", "participants"]
+                }
+              }
+            }
+          }
+        },
+        "description": "Adds or updates participants on the default stage on an approval. They can either be an approver or reviewer. Multiple participants can be added. Restricted to public users configured in Adobe I/O",
+        "operationId": "put-public-api-v1-approvals-assetType-assetId-participants",
+        "summary": "Allows to add participants to an approval on the default first stage",
+        "tags": ["Public"]
+      },
+      "delete": {
+        "summary": "Allows to delete participants on an approval on the default first stage",
+        "description": "Allows to delete participants on an approval on the default first stage. They can either be an approver or reviewer. Multiple participants can be deleted. Restricted to allowed public users",
+        "operationId": "delete-public-api-v1-approvals-assetType-assetId-participants",
+        "tags": ["Public"],
+        "security": [{ "wf-auth": [] }],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "The basic approval response object with all details",
+                  "title": "Approval response",
+                  "properties": {
+                    "approvalGuid": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "6744feadafbbfb97a7c1c325"
+                    },
+                    "assetId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "assetType": {
+                      "type": "string",
+                      "description": "The type of the entity",
+                      "enum": ["DOCV"],
+                      "example": "DOCV"
+                    },
+                    "creatorId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "66cf5cec0002204507c8ce6d532dfc08"
+                    },
+                    "customerDomain": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The customer domain",
+                      "example": "hub"
+                    },
+                    "templateId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "productId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "genstudio"
+                    },
+                    "imsOrgId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "1269195F66C8C84F0A494025@AdobeOrg"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "not started",
+                        "in review",
+                        "opened",
+                        "notified",
+                        "approved",
+                        "approved with changes",
+                        "needs work",
+                        "pending approval",
+                        "pending review",
+                        "reviewed",
+                        "withdrawn"
+                      ]
+                    },
+                    "isLocked": {
+                      "type": "boolean",
+                      "description": "Rollup of the stages isLocked field. If all stages are locked, this will be true, otherwise this will be false"
+                    },
+                    "decisionDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "stageId": { "type": "string" },
+                  "participants": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "title": "AddParticipantBody",
+                      "type": "object",
+                      "description": "Participant details",
+                      "properties": {
+                        "participantId": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": "66cf5cec0002204507c8ce6d532dfc08"
+                        },
+                        "participantType": {
+                          "type": "string",
+                          "enum": ["USER", "TEAMOB"],
+                          "example": "USER"
+                        },
+                        "participantRole": {
+                          "type": "string",
+                          "enum": ["approver", "reviewer"],
+                          "example": "approver"
+                        },
+                        "participantMetadata": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "oneOf": [
+                              { "type": "string" },
+                              { "type": "number" },
+                              { "type": "boolean" },
+                              { "type": "array" },
+                              { "type": "object" }
+                            ]
+                          }
+                        }
+                      },
+                      "required": ["participantId", "participantType", "participantRole"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/api/v1/approvals/{assetType}/{assetId}/stages": {
+      "parameters": [
+        {
+          "name": "AssetType",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "The type of the entity",
+            "enum": ["DOCV"],
+            "example": "DOCV"
+          }
+        },
+        {
+          "description": "The id of the asset being approved",
+          "schema": {
+            "type": "string",
+            "pattern": "^[\\w-:|~]+$",
+            "example": "673fc29b0006af515e33732d1ebdc39a"
+          },
+          "name": "assetId",
+          "in": "path",
+          "required": true
+        },
+        {
+          "in": "header",
+          "name": "x-gw-ims-org-id",
+          "description": "The IMS Org ID where the request is coming from",
+          "schema": {
+            "type": "string",
+            "example": "1269195F66C8C84F0A494025@AdobeOrg"
+          }
+        },
+        {
+          "in": "header",
+          "name": "x-gw-user-id",
+          "description": "The requesting user ID",
+          "schema": {
+            "type": "string",
+            "example": "59281F01631245820A49421E@0000000000000000000000.e"
+          }
+        }
+      ],
+      "put": {
+        "summary": "Create or update an approval with the given stage data.",
+        "description": "Creates or updates an approval with given stage data. Restricted to allowed public users",
+        "operationId": "post-public-api-v1-approvals-assetType-assetId",
+        "security": [{ "ims-auth": [] }],
+        "tags": ["Public"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "The basic approval response object with all details",
+                  "title": "Approval response",
+                  "properties": {
+                    "approvalGuid": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "6744feadafbbfb97a7c1c325"
+                    },
+                    "assetId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "assetType": {
+                      "type": "string",
+                      "description": "The type of the entity",
+                      "enum": ["DOCV"],
+                      "example": "DOCV"
+                    },
+                    "creatorId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "66cf5cec0002204507c8ce6d532dfc08"
+                    },
+                    "customerDomain": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The customer domain",
+                      "example": "hub"
+                    },
+                    "templateId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "productId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "genstudio"
+                    },
+                    "imsOrgId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "1269195F66C8C84F0A494025@AdobeOrg"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "not started",
+                        "in review",
+                        "opened",
+                        "notified",
+                        "approved",
+                        "approved with changes",
+                        "needs work",
+                        "pending approval",
+                        "pending review",
+                        "reviewed",
+                        "withdrawn"
+                      ]
+                    },
+                    "isLocked": {
+                      "type": "boolean",
+                      "description": "Rollup of the stages isLocked field. If all stages are locked, this will be true, otherwise this will be false"
+                    },
+                    "decisionDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "stages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 1,
+                    "items": {
+                      "title": "AddStageBody",
+                      "type": "object",
+                      "description": "Model for adding a new stage to an approval",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": "Marketing stage"
+                        },
+                        "stageMetadata": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "oneOf": [
+                              { "type": "string" },
+                              { "type": "number" },
+                              { "type": "boolean" },
+                              { "type": "array" },
+                              { "type": "object" }
+                            ]
+                          }
+                        },
+                        "deadlineDate": {
+                          "type": "string",
+                          "nullable": true,
+                          "description": "date object",
+                          "example": "2024-11-25T22:48:13.598Z"
+                        },
+                        "participants": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "title": "AddParticipantBody",
+                            "type": "object",
+                            "description": "Participant details",
+                            "properties": {
+                              "participantId": {
+                                "type": "string",
+                                "nullable": true,
+                                "example": "66cf5cec0002204507c8ce6d532dfc08"
+                              },
+                              "participantType": {
+                                "type": "string",
+                                "enum": ["USER", "TEAMOB"],
+                                "example": "USER"
+                              },
+                              "participantRole": {
+                                "type": "string",
+                                "enum": ["approver", "reviewer"],
+                                "example": "approver"
+                              },
+                              "participantMetadata": {
+                                "type": "object",
+                                "additionalProperties": {
+                                  "oneOf": [
+                                    { "type": "string" },
+                                    { "type": "number" },
+                                    { "type": "boolean" },
+                                    { "type": "array" },
+                                    { "type": "object" }
+                                  ]
+                                }
+                              }
+                            },
+                            "required": ["participantId", "participantType", "participantRole"]
+                          }
+                        },
+                        "config": {
+                          "type": "object",
+                          "properties": {
+                            "autoLockEnabled": {
+                              "type": "boolean",
+                              "default": true
+                            }
+                          }
+                        }
+                      },
+                      "required": ["participants"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/api/v1/approvals/{assetType}/{assetId}/stages/{stageId}/lock": {
+      "parameters": [
+        {
+          "name": "AssetType",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "The type of the entity",
+            "enum": ["DOCV"],
+            "example": "DOCV"
+          }
+        },
+        {
+          "description": "The id of the asset being approved",
+          "schema": {
+            "type": "string",
+            "pattern": "^[\\w-:|~]+$",
+            "example": "673fc29b0006af515e33732d1ebdc39a"
+          },
+          "name": "assetId",
+          "in": "path",
+          "required": true
+        },
+        {
+          "in": "header",
+          "name": "x-gw-ims-org-id",
+          "description": "The IMS Org ID where the request is coming from",
+          "schema": {
+            "type": "string",
+            "example": "1269195F66C8C84F0A494025@AdobeOrg"
+          }
+        },
+        {
+          "in": "header",
+          "name": "x-gw-user-id",
+          "description": "The requesting user ID",
+          "schema": {
+            "type": "string",
+            "example": "59281F01631245820A49421E@0000000000000000000000.e"
+          }
+        },
+        {
+          "schema": {
+            "type": "string",
+            "pattern": "^[\\w-:]+$",
+            "example": "e7ccf939Dc491892dV89e122bTb8fa128bd"
+          },
+          "name": "stageId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "put": {
+        "summary": "Allows locking a particular stage in the approval",
+        "description": "Locks the specified stage in the approval and sets the stage to inactive. We will get an error if we try to lock the stage without making decision first. Will throw an error if the approval or stage is not found. Restricted to allowed public users",
+        "operationId": "put-public-api-v1-approvals-assetType-assetId-stages-stageId-lock",
+        "security": [{ "ims-auth": [] }],
+        "tags": ["Public"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "The basic approval response object with all details",
+                  "title": "Approval response",
+                  "properties": {
+                    "approvalGuid": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "6744feadafbbfb97a7c1c325"
+                    },
+                    "assetId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "assetType": {
+                      "type": "string",
+                      "description": "The type of the entity",
+                      "enum": ["DOCV"],
+                      "example": "DOCV"
+                    },
+                    "creatorId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "66cf5cec0002204507c8ce6d532dfc08"
+                    },
+                    "customerDomain": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The customer domain",
+                      "example": "hub"
+                    },
+                    "templateId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "productId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "genstudio"
+                    },
+                    "imsOrgId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "1269195F66C8C84F0A494025@AdobeOrg"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "not started",
+                        "in review",
+                        "opened",
+                        "notified",
+                        "approved",
+                        "approved with changes",
+                        "needs work",
+                        "pending approval",
+                        "pending review",
+                        "reviewed",
+                        "withdrawn"
+                      ]
+                    },
+                    "isLocked": {
+                      "type": "boolean",
+                      "description": "Rollup of the stages isLocked field. If all stages are locked, this will be true, otherwise this will be false"
+                    },
+                    "decisionDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/public/api/v1/approvals/{assetType}/{assetId}/stages/{stageId}/unlock": {
+      "parameters": [
+        {
+          "name": "AssetType",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "description": "The type of the entity",
+            "enum": ["DOCV"],
+            "example": "DOCV"
+          }
+        },
+        {
+          "description": "The id of the asset being approved",
+          "schema": {
+            "type": "string",
+            "pattern": "^[\\w-:|~]+$",
+            "example": "673fc29b0006af515e33732d1ebdc39a"
+          },
+          "name": "assetId",
+          "in": "path",
+          "required": true
+        },
+        {
+          "in": "header",
+          "name": "x-gw-ims-org-id",
+          "description": "The IMS Org ID where the request is coming from",
+          "schema": {
+            "type": "string",
+            "example": "1269195F66C8C84F0A494025@AdobeOrg"
+          }
+        },
+        {
+          "in": "header",
+          "name": "x-gw-user-id",
+          "description": "The requesting user ID",
+          "schema": {
+            "type": "string",
+            "example": "59281F01631245820A49421E@0000000000000000000000.e"
+          }
+        },
+        {
+          "schema": {
+            "type": "string",
+            "pattern": "^[\\w-:]+$",
+            "example": "e7ccf939Dc491892dV89e122bTb8fa128bd"
+          },
+          "name": "stageId",
+          "in": "path",
+          "required": true
+        }
+      ],
+      "put": {
+        "summary": "Allows unlocking a particular stage in the approval",
+        "description": "Unlocks the specified stage in the approval and sets the stage to active. We will get an error if we try to unlock the stage without making decision first. Will throw an error if the approval or stage is not found. Restricted to allowed public users",
+        "operationId": "put-public-api-v1-approvals-assetType-assetId-stages-stageId-unlock",
+        "security": [{ "ims-auth": [] }],
+        "tags": ["Public"],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "The basic approval response object with all details",
+                  "title": "Approval response",
+                  "properties": {
+                    "approvalGuid": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "6744feadafbbfb97a7c1c325"
+                    },
+                    "assetId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "assetType": {
+                      "type": "string",
+                      "description": "The type of the entity",
+                      "enum": ["DOCV"],
+                      "example": "DOCV"
+                    },
+                    "creatorId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "66cf5cec0002204507c8ce6d532dfc08"
+                    },
+                    "customerDomain": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The customer domain",
+                      "example": "hub"
+                    },
+                    "templateId": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "The identifier for the entity",
+                      "example": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5"
+                    },
+                    "productId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "genstudio"
+                    },
+                    "imsOrgId": {
+                      "type": "string",
+                      "nullable": true,
+                      "example": "1269195F66C8C84F0A494025@AdobeOrg"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "not started",
+                        "in review",
+                        "opened",
+                        "notified",
+                        "approved",
+                        "approved with changes",
+                        "needs work",
+                        "pending approval",
+                        "pending review",
+                        "reviewed",
+                        "withdrawn"
+                      ]
+                    },
+                    "isLocked": {
+                      "type": "boolean",
+                      "description": "Rollup of the stages isLocked field. If all stages are locked, this will be true, otherwise this will be false"
+                    },
+                    "decisionDate": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "createdAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    },
+                    "updatedAt": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "date object",
+                      "example": "2024-11-25T22:48:13.598Z"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
