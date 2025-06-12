@@ -49,6 +49,12 @@ This is the traditional /attask API used to manage your Projects, Tasks, and Iss
 
 <DiscoverBlock slots="link, text"/>
 
+[Documents Webhook API](https://experienceleague.adobe.com/en/docs/workfront/using/adobe-workfront-api/document-webhooks-api/document-webhooks-api)
+
+Adobe Workfront Document Webhooks defines a set of API endpoints through which Workfront makes authorized API calls to an External Document Provider.  
+
+<DiscoverBlock slots="link, text"/>
+
 [Workfront Planning API](api/planning)
 
 Used to manage your Planning workspaces, record types, and records

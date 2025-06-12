@@ -4,4 +4,4 @@ description: WF Planning API instructions
 layout: none
 ---
 
-<RedoclyAPIBlock disableSearch="true" ctrlFHijack="false" src="/swagger-specs/planning.yaml"/>
+<RedoclyAPIBlock disableSearch="true" ctrlFHijack="false" src="/workfront-apis/swagger-specs/planning.yaml"/>
