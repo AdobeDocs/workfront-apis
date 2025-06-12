@@ -3,8 +3,8 @@ info:
   title: Workfront Planning API
   description: This is WF Planning Service API documentation. WF Planning Service
     is responsible for creating and managing new workspace, field, record, record
-    type objects across the Workfront Planning application. The domain of the API
-    is https://{customer-domain}/maestro/api followed by the version and API path.
+    type objects across the Workfront Planning application. The domain and pathof the API
+    is https://{customer-domain}/maestro/api followed by the version and resource path.
   version: v1
 servers:
 - url: https://{customer-domain}/maestro/api
