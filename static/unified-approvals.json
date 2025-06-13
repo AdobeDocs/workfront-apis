@@ -12,7 +12,7 @@
   },
   "servers": [
     { "url": "" },
-    { "url": "", "description": "" }
+    { "url": "https://workfront.adobe.io/unified-approvals/", "description": "" }
   ],
   "components": {
     "securitySchemes": {
