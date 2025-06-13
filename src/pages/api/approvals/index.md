@@ -20,20 +20,7 @@ Workfront Platform provides RESTful APIs that allow you to programmatically perf
 ## Overview
 <br/>
 
-Workfront Approvals public API endpoints are designed to help manage the document version approval process. They allow users to view, add, update, and remove stages and participants involved in decision-making for various asset types.<br/>
-
-- API Paths
-  - Gateway URL: https://worfront.adobe.io
-  - Base Path: /unified-approvals
-  - Example Path: /public/api/v1/approvals/{assetType}/{assetId}
-
-- Required headers: All calls require the headers
-  - Authorization: Bearer {access_token}
-  - x-api-key: {api_key}
-  - x-gw-ims-org-id: {ims_org_id}
-  - x-gw-user-id: {user_id}
-  - x-gw-subdomain: {subdomain}
-  - x-gw-region: {region} (optional)
+This documentation provides instructions for using workfront unified approvals APIs. These APIs allow you to manage the review and approval objects in Workfront.
 
 <br/>
 
