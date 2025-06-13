@@ -3,7 +3,7 @@
   "info": {
     "title": "Unified Approvals Service",
     "version": "1.0",
-    "description": "Provides a unified interface for managing approvals across different asset types. https://experienceleague.adobe.com/en/docs/workfront/using/review-and-approve-work/work-approvals/manage-approvals",
+    "description": "Workfront Approvals public API endpoints are designed to help manage the document version approval process.\nThey allow users to view, add, update, and remove stages and participants involved in decision-making for various asset types.\n\n### API Paths\n- **Gateway URL**: `https://worfront.adobe.io`\n- **Base Path**: `/unified-approvals`\n- **Example Path**: `/public/api/v1/approvals/{assetType}/{assetId}`\n\n### Required Headers\nAll calls require the following headers:\n\n- `Authorization`: `Bearer {access_token}`\n- `x-api-key`: Generated API key from Adobe Developer Console\n- `x-gw-ims-org-id`: Generated IMS Org ID from Adobe Developer Console\n- `x-gw-user-id`: User ID of the user making the request\n- `x-gw-subdomain`: Customer subdomain",
     "contact": {
       "name": "",
       "email": "",
@@ -109,7 +109,6 @@
         "summary": "Get Approval details for an asset",
         "description": "Get Approval details for a particular asset by sending asset ID and asset type. Restricted to allowed public users",
         "security": [{ "ims-auth": [] }],
-        "tags": ["Public"],
         "responses": {
           "200": {
             "description": "OK",
@@ -297,7 +296,6 @@
         "description": "Make a decision on a stage. If the decision is already made, it will be updated. Overall stage and approval status will be updated based on the decision and other participants. Throws an error if the approval is not found or if participant is not allowed.",
         "operationId": "public-put-api-v1-approvals-assetType-assetId-decisions",
         "security": [{ "ims-auth": [] }],
-        "tags": ["Public"],
         "responses": {
           "200": {
             "description": "OK",
@@ -640,7 +638,6 @@
         "summary": "Allows to delete participants on an approval on the default first stage",
         "description": "Allows to delete participants on an approval on the default first stage. They can either be an approver or reviewer. Multiple participants can be deleted. Restricted to allowed public users",
         "operationId": "delete-public-api-v1-approvals-assetType-assetId-participants",
-        "tags": ["Public"],
         "security": [{ "wf-auth": [] }],
         "responses": {
           "200": {
@@ -841,7 +838,6 @@
         "description": "Creates or updates an approval with given stage data. Restricted to allowed public users",
         "operationId": "post-public-api-v1-approvals-assetType-assetId",
         "security": [{ "ims-auth": [] }],
-        "tags": ["Public"],
         "responses": {
           "200": {
             "description": "OK",
@@ -1095,7 +1091,6 @@
         "description": "Locks the specified stage in the approval and sets the stage to inactive. We will get an error if we try to lock the stage without making decision first. Will throw an error if the approval or stage is not found. Restricted to allowed public users",
         "operationId": "put-public-api-v1-approvals-assetType-assetId-stages-stageId-lock",
         "security": [{ "ims-auth": [] }],
-        "tags": ["Public"],
         "responses": {
           "200": {
             "description": "OK",
@@ -1254,7 +1249,6 @@
         "description": "Unlocks the specified stage in the approval and sets the stage to active. We will get an error if we try to unlock the stage without making decision first. Will throw an error if the approval or stage is not found. Restricted to allowed public users",
         "operationId": "put-public-api-v1-approvals-assetType-assetId-stages-stageId-unlock",
         "security": [{ "ims-auth": [] }],
-        "tags": ["Public"],
         "responses": {
           "200": {
             "description": "OK",
