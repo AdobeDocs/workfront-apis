@@ -1,1 +1,1 @@
-{"componentChunkName":"component---src-pages-api-planning-md","path":"/api/planning/","result":{"pageContext":{"frontmatter":{"title":"WF Planning API","description":"WF Planning API instructions"}}},"staticQueryHashes":["1440646406","1814815295","3508090095"]}
+{"componentChunkName":"component---src-pages-api-planning-md","path":"/api/planning/","result":{"pageContext":{"frontmatter":{"title":"WF Planning API","description":"WF Planning API instructions","openAPISpec":"/planning.json"}}},"staticQueryHashes":["1440646406","1814815295","3508090095"]}
