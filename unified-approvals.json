@@ -631,8 +631,7 @@
         },
         "description": "Adds or updates participants on the default stage on an approval. They can either be an approver or reviewer. Multiple participants can be added. Restricted to public users configured in Adobe I/O",
         "operationId": "put-public-api-v1-approvals-assetType-assetId-participants",
-        "summary": "Allows to add participants to an approval on the default first stage",
-        "tags": ["Public"]
+        "summary": "Allows to add participants to an approval on the default first stage"
       },
       "delete": {
         "summary": "Allows to delete participants on an approval on the default first stage",
