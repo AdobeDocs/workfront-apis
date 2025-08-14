@@ -3,7 +3,7 @@
   "info": {
     "title": "Unified Approvals Service",
     "version": "1.0",
-    "description": "Workfront Approvals public API endpoints are designed to help manage the document version approval process.\nThey allow users to view, add, update, and remove stages and participants involved in decision-making for various asset types.\n\n### API Paths\n- **Gateway URL**: `https://worfront.adobe.io`\n- **Base Path**: `/unified-approvals`\n- **Example Path**: `/public/api/v1/approvals/{assetType}/{assetId}`\n\n### Required Headers\nAll calls require the following headers:\n\n- `Authorization`: `Bearer {access_token}`\n- `x-api-key`: Generated API key from Adobe Developer Console\n- `x-gw-ims-org-id`: Generated IMS Org ID from Adobe Developer Console\n- `x-gw-subdomain`: Customer subdomain",
+    "description": "Workfront Approvals public API endpoints are designed to help manage the document version approval process.\nThey allow users to view, add, update, and remove stages and participants involved in decision-making for various asset types.\n\n### API Paths\n- **Gateway URL**: `https://workfront.adobe.io`\n- **Base Path**: `/unified-approvals`\n- **Example Path**: `/public/api/v1/approvals/{assetType}/{assetId}`\n\n### Required Headers\nAll calls require the following headers:\n\n- `Authorization`: `Bearer {access_token}`\n- `x-api-key`: Generated API key from Adobe Developer Console\n- `x-gw-ims-org-id`: Generated IMS Org ID from Adobe Developer Console\n- `x-gw-subdomain`: Customer subdomain",
     "contact": {
       "name": "",
       "email": "",
