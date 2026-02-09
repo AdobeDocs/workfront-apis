@@ -20,7 +20,7 @@ Workfront Platform provides RESTful APIs that allow you to programmatically perf
 ## Overview
 <br/>
 
-This documentation provides instructions for using workfront unified approvals APIs. These APIs allow you to manage the review and approval objects in Workfront.
+This documentation provides instructions for using Workfront Unified Approvals APIs. These APIs allow you to manage the review and approval objects in Workfront.
 
 <br/>
 
