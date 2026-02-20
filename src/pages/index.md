@@ -5,7 +5,7 @@ contributors:
   - https://github.com/icaraps 
 ---
 
-<Hero slots="heading, text"/>
+<SuperHero slots="heading, text"/>
 
 # Workfront Platform APIs
 
@@ -28,7 +28,7 @@ This documentation provides instructions for using various different Workfront A
 
 ### General Guides
 
-[Setup API Credentials and Access](guides/gaining_access/)
+[Setup API Credentials and Access](guides/gaining-access/index.md)
 
 Guide for how to setup your Authentication credentials and gain access to the API's
 
@@ -45,7 +45,7 @@ Guide that includes the details of what domain you use for API calls.
 
 [Workfront Workflow API](https://experienceleague.adobe.com/en/docs/workfront/using/adobe-workfront-api/workfront-api)
 
-This is the original <b>/attask</b> endpoints used to manage your Projects, Tasks, Issues and other traditional Workfront resources. 
+This is the original \<b\>/attask\</b\> endpoints used to manage your Projects, Tasks, Issues and other traditional Workfront resources. 
 
 <DiscoverBlock slots="link, text"/>
 
@@ -55,13 +55,13 @@ Adobe Workfront Document Webhooks defines a set of API endpoints through which W
 
 <DiscoverBlock slots="link, text"/>
 
-[Workfront Planning API](api/planning)
+[Workfront Planning API](api/planning/index.md)
 
 Used to manage your Planning workspaces, record types, and records
 
 <DiscoverBlock slots="link, text"/>
 
-[Unified Review and Approvals API](api/approvals)
+[Unified Review and Approvals API](api/approvals/index.md)
 
 Used to manage the Review and Approval objects
 

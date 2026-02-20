@@ -5,7 +5,7 @@ contributors:
   - https://github.com/icaraps 
 ---
 
-<Hero slots="heading, text"/>
+<SuperHero slots="heading, text"/>
 
 # Workfront Platform APIs
 
@@ -19,15 +19,15 @@ Workfront Platform provides RESTful APIs that allow you to programmatically perf
 
 ## Overview
 
-<br/>
+\<br/\>
 
 This documentation provides instructions for using Workfront Unified Approvals APIs. These APIs allow you to manage the review and approval objects in Workfront.
 
-<br/>
+\<br/\>
 
-[Unified Approvals API](/api/approvals/unified-approvals)
+[Unified Approvals API](/api/approvals/unified-approvals.md)
 
 [ProofHQ API](https://api.proofhq.com/)
 
-<br/>
-<br/>
+\<br/\>
+\<br/\>
