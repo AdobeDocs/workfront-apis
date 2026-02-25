@@ -1,0 +1,80 @@
+{
+  "total": 18,
+  "offset": 0,
+  "limit": 18,
+  "data": [
+    {
+      "Source": "/workfront-apis",
+      "Destination": "/workfront-apis/"
+    },
+    {
+      "Source": "/workfront-apis/index",
+      "Destination": "/workfront-apis/"
+    },
+    {
+      "Source": "/workfront-apis/guides",
+      "Destination": "/workfront-apis/guides/"
+    },
+    {
+      "Source": "/workfront-apis/guides/index",
+      "Destination": "/workfront-apis/guides/"
+    },
+    {
+      "Source": "/workfront-apis/guides/gaining_access",
+      "Destination": "/workfront-apis/guides/gaining-access/"
+    },
+    {
+      "Source": "/workfront-apis/guides/gaining-access",
+      "Destination": "/workfront-apis/guides/gaining-access/"
+    },
+    {
+      "Source": "/workfront-apis/guides/gaining_access/index",
+      "Destination": "/workfront-apis/guides/gaining-access/"
+    },
+    {
+      "Source": "/workfront-apis/guides/gaining-access/index",
+      "Destination": "/workfront-apis/guides/gaining-access/"
+    },
+    {
+      "Source": "/workfront-apis/api/workflow/",
+      "Destination": "/workfront-apis/api/workflow"
+    },
+    {
+      "Source": "/workfront-apis/api/1.4/",
+      "Destination": "/workfront-apis/api/1-4"
+    },
+    {
+      "Source": "/workfront-apis/api/1-4/",
+      "Destination": "/workfront-apis/api/1-4"
+    },
+    {
+      "Source": "/workfront-apis/api/planning",
+      "Destination": "/workfront-apis/api/planning/"
+    },
+    {
+      "Source": "/workfront-apis/api/planning/index",
+      "Destination": "/workfront-apis/api/planning/"
+    },
+    {
+      "Source": "/workfront-apis/api/approvals/unified-approvals/",
+      "Destination": "/workfront-apis/api/approvals/unified-approvals"
+    },
+    {
+      "Source": "/workfront-apis/api/approvals",
+      "Destination": "/workfront-apis/api/approvals/"
+    },
+    {
+      "Source": "/workfront-apis/api/approvals/index",
+      "Destination": "/workfront-apis/api/approvals/"
+    },
+    {
+      "Source": "/workfront-apis/guides/gaining_access/",
+      "Destination": "/workfront-apis/guides/gaining-access/"
+    },
+    {
+      "Source": "/workfront-apis/api/1.4",
+      "Destination": "/workfront-apis/api/1-4"
+    }
+  ],
+  ":type": "sheet"
+}

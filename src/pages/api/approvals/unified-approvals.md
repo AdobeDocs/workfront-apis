@@ -1,5 +1,7 @@
 ---
 title: Unified Approvals API
 description: Unified Approvals API instructions
-openAPISpec: /unified-approvals.json
+layout: none
 ---
+
+<RedoclyAPIBlock src="/workfront-apis/unified-approvals.json"/>

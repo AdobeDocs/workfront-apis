@@ -1,5 +1,7 @@
 ---
 title: WF Planning API
 description: WF Planning API instructions
-openAPISpec: /planning.yaml
+layout: none
 ---
+
+<RedoclyAPIBlock src="/workfront-apis/planning.yaml"/>
