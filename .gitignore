@@ -1,7 +1,11 @@
-.editorconfig
-.idea
+
+# OS and IDE generated files #
+##############################
 .DS_Store
-.vscode/*
+.vscode
+.history
+.idea
+.editorconfig
 
 # npm yarn
 node_modules
@@ -32,8 +36,11 @@ cypress/screenshots
 # lerna
 lerna-debug.log
 
-# json files
-adp-site-metadata.json
+# local actions
+.actrc
+.secrets
+local-test.yml
 
-#.txt
-linter-report.txt
+# yalc
+.yalc
+yalc.lock
