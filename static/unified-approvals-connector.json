@@ -1,0 +1,3745 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Unified Approvals Connector",
+    "version": "1.0",
+    "description": "The Unified Approvals Connector is a Fastify service that bridges Workfront (Redrock) and the Unified Approvals system. It manages document-version approvals, multi-stage workflows, participant management, template CRUD, and decision-making.\n\n## Authentication\n\nThe connector supports three authentication methods:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **WorkfrontAuthCookie** | `wf-auth` cookie | Browser-based Workfront sessions |\n| **WorkfrontAuthHeader** | `wf-auth` header | Server-to-server calls from Workfront services |\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept any of the three auth methods.\n\nFor Bearer token auth, the following Workfront context headers are also required:\n- `wf-subdomain` or `x-gw-subdomain` — customer Workfront subdomain\n- `wf-customerid` — Workfront customer ID\n- `wf-userid` — Workfront user ID\n- `wf-lane` — Workfront deployment lane (e.g. `prod`, `devtest`)\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals/` | Complex |\n| Templates | `/api/v1/templates/` | Complex |\n| Search | `/api/v1/search/` | Complex |\n| Bots | `/api/v1/bots/` | Complex |",
+    "contact": {
+      "name": "",
+      "email": "",
+      "url": ""
+    }
+  },
+  "servers": [
+    {
+      "url": "https://workfront.adobe.io/workfront-approvals/",
+      "description": "Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Approvals",
+      "description": "Approval lifecycle: create, read, delete"
+    },
+    {
+      "name": "Stages",
+      "description": "Stage management within an approval"
+    },
+    {
+      "name": "Decisions",
+      "description": "Make and delete decisions on approval stages"
+    },
+    {
+      "name": "Participants",
+      "description": "Add, remove, and remind participants"
+    },
+    {
+      "name": "Templates",
+      "description": "Approval template CRUD"
+    },
+    {
+      "name": "Search",
+      "description": "Search approvals with filters"
+    },
+    {
+      "name": "Bots",
+      "description": "Bot account management"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "WorkfrontAuthCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "wf-auth",
+        "description": "Workfront auth JWT issued as a session cookie"
+      },
+      "WorkfrontAuthHeader": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "wf-auth",
+        "description": "Workfront auth JWT passed as a request header"
+      },
+      "Bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "IMS Bearer token from Adobe IO / Developer Console. When used, the following context headers are also required: `wf-subdomain` (or `x-gw-subdomain`), `wf-customerid`, `wf-userid`, `wf-lane`."
+      }
+    },
+    "parameters": {
+      "AssetType": {
+        "name": "assetType",
+        "in": "path",
+        "required": true,
+        "description": "The type of asset",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "DOCV"
+          ],
+          "example": "DOCV"
+        }
+      },
+      "AssetId": {
+        "name": "assetId",
+        "in": "path",
+        "required": true,
+        "description": "The ID of the asset",
+        "schema": {
+          "type": "string",
+          "example": "673fc29b0006af515e33732d1ebdc39a"
+        }
+      },
+      "StageId": {
+        "name": "stageId",
+        "in": "path",
+        "required": true,
+        "description": "The ID of the approval stage",
+        "schema": {
+          "type": "string",
+          "example": "design-review"
+        }
+      },
+      "ParticipantId": {
+        "name": "participantId",
+        "in": "path",
+        "required": true,
+        "description": "The ID of the participant",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ParticipantType": {
+        "name": "participantType",
+        "in": "path",
+        "required": true,
+        "description": "The type of participant",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "USER",
+            "TEAMOB"
+          ]
+        }
+      },
+      "TemplateId": {
+        "name": "templateId",
+        "in": "path",
+        "required": true,
+        "description": "The ID of the approval template",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "ImsOrgId": {
+        "name": "imsOrgId",
+        "in": "path",
+        "required": true,
+        "description": "IMS Organization ID",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "XRequestId": {
+        "name": "x-request-id",
+        "in": "header",
+        "required": false,
+        "description": "Unique identifier for request tracing. Auto-generated if not provided.",
+        "schema": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "XCorrelationId": {
+        "name": "x-correlation-id",
+        "in": "header",
+        "required": false,
+        "description": "Unique identifier for correlation across multiple service calls.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "Approval": {
+        "type": "object",
+        "description": "An approval record for an asset",
+        "properties": {
+          "approvalGuid": {
+            "type": "string",
+            "description": "Unique identifier for the approval"
+          },
+          "assetId": {
+            "type": "string"
+          },
+          "assetType": {
+            "type": "string"
+          },
+          "creatorId": {
+            "type": "string"
+          },
+          "realCreatorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerDomain": {
+            "type": "string"
+          },
+          "eauthTenantId": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string",
+            "description": "ID of the template used to create this approval, if any"
+          },
+          "productId": {
+            "type": "string"
+          },
+          "imsOrgId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "Overall approval status (e.g. 'pending', 'in review', 'approved', 'needs work')"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "isLockOverridden": {
+            "type": "boolean"
+          },
+          "decisionDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStage"
+            }
+          },
+          "structure": {
+            "type": "array",
+            "description": "DAG structure defining stage ordering and trigger dependencies",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStructure"
+            }
+          },
+          "isApprovalActive": {
+            "type": "boolean"
+          },
+          "isEsmAsset": {
+            "type": "boolean",
+            "description": "Whether the asset is an ESM (Experience Storage Manager) asset"
+          },
+          "frameSyncStatus": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "Whether the Frame.io asset sync is complete"
+          },
+          "userInfo": {
+            "type": "object",
+            "description": "Contextual information about the authenticated user's relationship to this approval",
+            "properties": {
+              "isEditable": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "hasLicenseAccess": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "activeDecision": {
+                "type": "string",
+                "nullable": true,
+                "description": "The current user's most recent decision"
+              },
+              "action": {
+                "type": "string",
+                "nullable": true
+              },
+              "availableDecisions": {
+                "type": "object",
+                "nullable": true,
+                "description": "Map of decision key to display label for the current user",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "currentUserMadeDecision": {
+                "type": "boolean",
+                "nullable": true
+              }
+            }
+          }
+        },
+        "example": {
+          "approvalGuid": "6744feadafbbfb97a7c1c325",
+          "assetId": "673fc29b0006af515e33732d1ebdc39a",
+          "assetType": "DOCV",
+          "creatorId": "15401B8A66C8F9CB0A49423C@13cc192466c8c9a949410f.e",
+          "customerDomain": "mycompany",
+          "imsOrgId": "1269195F66C8C84F0A494025@AdobeOrg",
+          "status": "in review",
+          "isLocked": false,
+          "isLockOverridden": false,
+          "isApprovalActive": true,
+          "isEsmAsset": true,
+          "createdAt": "2024-11-25T22:48:13.598Z",
+          "updatedAt": "2024-11-25T22:48:13.598Z",
+          "stages": [
+            {
+              "stageId": "design-review",
+              "name": "Design Review",
+              "status": "in review",
+              "isLocked": false,
+              "isActive": true,
+              "isStarted": true,
+              "isCompleted": false,
+              "participants": [
+                {
+                  "participantId": "66cf5cec0002204507c8ce6d532dfc08",
+                  "participantType": "USER",
+                  "participantRole": "approver",
+                  "status": "notified",
+                  "createdAt": "2024-11-25T22:48:13.598Z",
+                  "updatedAt": "2024-11-25T22:48:13.598Z"
+                }
+              ],
+              "createdAt": "2024-11-25T22:48:13.598Z",
+              "updatedAt": "2024-11-25T22:48:13.598Z"
+            }
+          ],
+          "structure": [
+            {
+              "stageId": "design-review",
+              "parentIds": []
+            }
+          ],
+          "userInfo": {
+            "isEditable": true,
+            "hasLicenseAccess": true,
+            "activeDecision": null,
+            "availableDecisions": {
+              "approved": "Approve",
+              "needs work": "Request changes"
+            },
+            "currentUserMadeDecision": false
+          }
+        }
+      },
+      "ApprovalStage": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "deadlineDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deadlineBusinessDays": {
+            "type": "number",
+            "nullable": true
+          },
+          "deadlineTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "deadlineTimeOfDay": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "hours": {
+                "type": "number"
+              },
+              "minutes": {
+                "type": "number"
+              }
+            }
+          },
+          "decisionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isLocked": {
+            "type": "boolean"
+          },
+          "isActive": {
+            "type": "boolean"
+          },
+          "isLockOverridden": {
+            "type": "boolean"
+          },
+          "isStarted": {
+            "type": "boolean"
+          },
+          "isCompleted": {
+            "type": "boolean"
+          },
+          "stageMetadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStageParticipant"
+            }
+          },
+          "config": {
+            "$ref": "#/components/schemas/ApprovalStageConfig"
+          },
+          "triggers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageTrigger"
+            }
+          },
+          "parentIds": {
+            "type": "array",
+            "description": "IDs of stages that must complete before this stage activates",
+            "items": {
+              "type": "string"
+            }
+          },
+          "customMessage": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional message sent to participants when this stage is activated"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ApprovalStageParticipant": {
+        "type": "object",
+        "properties": {
+          "participantId": {
+            "type": "string"
+          },
+          "participantType": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "TEAMOB"
+            ]
+          },
+          "participantRole": {
+            "type": "string",
+            "enum": [
+              "reviewer",
+              "approver"
+            ]
+          },
+          "participantMetadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "requesterId": {
+            "type": "string",
+            "description": "ID of the user who added this participant"
+          },
+          "realRequesterId": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "description": "Participant notification/decision status (e.g. 'notified', 'decided')"
+          },
+          "activities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParticipantActivity"
+            }
+          },
+          "firstDecisionAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "decisionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ParticipantActivity": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "realUserId": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string",
+            "description": "Decision made (e.g. 'approved', 'needs work', 'approved with changes', 'reviewed')"
+          },
+          "decisionDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "notifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "userName": {
+            "type": "string"
+          }
+        }
+      },
+      "ApprovalStageConfig": {
+        "type": "object",
+        "properties": {
+          "autoLockEnabled": {
+            "type": "boolean",
+            "description": "Automatically lock the stage when all participants have decided"
+          },
+          "decisionRules": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "onlyOneDecisionRequired"
+            ],
+            "description": "Override rule for when the stage is considered decided. `onlyOneDecisionRequired` marks the stage complete when any one participant decides."
+          }
+        }
+      },
+      "StageTrigger": {
+        "type": "object",
+        "required": [
+          "type",
+          "when",
+          "parameters"
+        ],
+        "description": "Defines when and how a stage is automatically activated",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "activation"
+            ],
+            "description": "Type of trigger action"
+          },
+          "when": {
+            "type": "string",
+            "enum": [
+              "onCreate",
+              "onStagesComplete"
+            ],
+            "description": "`onCreate` activates the stage immediately when the approval is created. `onStagesComplete` activates after specified parent stages complete."
+          },
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "stages": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Stage IDs that must complete to fire this trigger (used with `onStagesComplete`)"
+              },
+              "allowedDecisions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "approved",
+                    "approved with changes",
+                    "needs work",
+                    "reviewed"
+                  ]
+                },
+                "description": "Decisions that count as 'complete' for this trigger"
+              }
+            }
+          }
+        },
+        "example": {
+          "type": "activation",
+          "when": "onStagesComplete",
+          "parameters": {
+            "stages": [
+              "design-review"
+            ],
+            "allowedDecisions": [
+              "approved",
+              "approved with changes"
+            ]
+          }
+        }
+      },
+      "ApprovalStructure": {
+        "type": "object",
+        "description": "Represents one node in the stage dependency graph",
+        "properties": {
+          "stageId": {
+            "type": "string"
+          },
+          "parentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "triggers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageTrigger"
+            }
+          }
+        }
+      },
+      "ApprovalHistory": {
+        "type": "object",
+        "properties": {
+          "author": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "creationDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "messageText": {
+            "type": "string"
+          }
+        }
+      },
+      "StageBody": {
+        "type": "object",
+        "required": [
+          "participants"
+        ],
+        "description": "Stage definition used when creating or updating an approval",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "deadlineDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "deadlineBusinessDays": {
+            "type": "number",
+            "nullable": true
+          },
+          "deadlineTime": {
+            "type": "string",
+            "nullable": true
+          },
+          "stageMetadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "participants": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "participantId",
+                "participantType",
+                "participantRole"
+              ],
+              "properties": {
+                "participantId": {
+                  "type": "string"
+                },
+                "participantType": {
+                  "type": "string",
+                  "enum": [
+                    "USER",
+                    "TEAMOB"
+                  ]
+                },
+                "participantRole": {
+                  "type": "string",
+                  "enum": [
+                    "reviewer",
+                    "approver"
+                  ]
+                },
+                "participantMetadata": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "config": {
+            "$ref": "#/components/schemas/ApprovalStageConfig"
+          },
+          "parentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "triggers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StageTrigger"
+            }
+          },
+          "customMessage": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional message for participants when this stage activates"
+          }
+        }
+      },
+      "ParticipantBody": {
+        "type": "object",
+        "description": "Participant definition used in request bodies",
+        "properties": {
+          "stageId": {
+            "type": "string"
+          },
+          "participantId": {
+            "type": "string"
+          },
+          "participantType": {
+            "type": "string",
+            "enum": [
+              "USER",
+              "TEAMOB"
+            ]
+          },
+          "participantRole": {
+            "type": "string",
+            "enum": [
+              "reviewer",
+              "approver"
+            ]
+          },
+          "participantMetadata": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      },
+      "Template": {
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "assetType": {
+            "type": "string"
+          },
+          "timeframe": {
+            "type": "integer",
+            "description": "Estimated timeframe in business days"
+          },
+          "timeframeEstimate": {
+            "type": "integer"
+          },
+          "usageCount": {
+            "type": "integer"
+          },
+          "lastUsedOnDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "creatorId": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Display name of the creator"
+          },
+          "createdByAvatarDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdByLinkTo": {
+            "type": "string",
+            "description": "Profile URL path, e.g. `/USER/{id}/detail`"
+          },
+          "createdByMetadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "customerId": {
+            "type": "string"
+          },
+          "companyId": {
+            "type": "string",
+            "nullable": true
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateStage"
+            }
+          },
+          "structure": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStructure"
+            }
+          },
+          "sharedWith": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": "string"
+                },
+                "accessLevel": {
+                  "type": "string",
+                  "enum": [
+                    "EDIT_ACCESS",
+                    "VIEW_ACCESS"
+                  ]
+                }
+              }
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "TemplateStage": {
+        "type": "object",
+        "properties": {
+          "stageId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "deadlineBusinessDays": {
+            "type": "integer"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateStageParticipant"
+            }
+          }
+        }
+      },
+      "TemplateStageParticipant": {
+        "type": "object",
+        "properties": {
+          "participantId": {
+            "type": "string"
+          },
+          "participantType": {
+            "type": "string"
+          },
+          "participantRole": {
+            "type": "string"
+          },
+          "participantMetadata": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "name": {
+            "type": "string"
+          },
+          "emailAddr": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenseType": {
+            "type": "string",
+            "nullable": true
+          },
+          "eauthUserID": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "linkTo": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "TemplateBody": {
+        "type": "object",
+        "description": "Request body for creating or updating a template",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "assetType": {
+            "type": "string"
+          },
+          "companyId": {
+            "type": "string",
+            "nullable": true
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "deadlineBusinessDays": {
+                  "type": "integer"
+                },
+                "participants": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "participantId": {
+                        "type": "string"
+                      },
+                      "participantType": {
+                        "type": "string"
+                      },
+                      "participantRole": {
+                        "type": "string"
+                      },
+                      "participantMetadata": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "sharedWith": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": "string"
+                },
+                "accessLevel": {
+                  "type": "string",
+                  "enum": [
+                    "EDIT_ACCESS",
+                    "VIEW_ACCESS"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "description": "Validation error details (present on 400 FST_ERR_VALIDATION errors)",
+            "items": {
+              "type": "object"
+            }
+          },
+          "response": {
+            "type": "object",
+            "description": "Upstream service error response, if applicable"
+          }
+        }
+      }
+    },
+    "responses": {
+      "ApprovalResponse": {
+        "description": "OK",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Approval"
+            }
+          }
+        }
+      },
+      "UnauthorizedResponse": {
+        "description": "Unauthorized — no valid auth credentials provided",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "NotFoundResponse": {
+        "description": "Not Found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "BadRequestResponse": {
+        "description": "Bad Request — validation failure or invalid state",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "InternalServerErrorResponse": {
+        "description": "Internal Server Error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/approvals/{assetType}/{assetId}": {
+      "get": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Get approval",
+        "description": "Get approval details for an asset.",
+        "operationId": "getApproval",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Create approval",
+        "description": "Creates an approval for an ESM document with the given stage data. If a `templateId` is provided the stage structure is loaded from that template.",
+        "operationId": "createApproval",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "stages"
+                ],
+                "properties": {
+                  "stages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/components/schemas/StageBody"
+                    }
+                  },
+                  "templateId": {
+                    "type": "string",
+                    "description": "Optional template ID to base the approval structure on"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Delete approval",
+        "description": "Deletes the approval for the given asset. The asset must be in an editable state.",
+        "operationId": "deleteApproval",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approval deleted successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/getSuggestedApprovals": {
+      "get": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Get suggested approvals",
+        "description": "Returns suggested approval payloads derived from prior document versions, shaped for use when creating a new approval on the current asset. Results are ordered newest version first.",
+        "operationId": "getSuggestedApprovals",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "suggestedApprovals"
+                  ],
+                  "properties": {
+                    "suggestedApprovals": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "sourceVersion": {
+                            "description": "Document version number this suggestion was derived from",
+                            "oneOf": [
+                              {
+                                "type": "number"
+                              },
+                              {
+                                "type": "string"
+                              }
+                            ]
+                          }
+                        },
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/stages": {
+      "post": {
+        "tags": [
+          "Stages"
+        ],
+        "summary": "Create stages",
+        "description": "Creates an approval with the given stage data. Returns 201 on success.",
+        "operationId": "postStages",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "stages"
+                ],
+                "properties": {
+                  "stages": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "$ref": "#/components/schemas/StageBody"
+                    }
+                  },
+                  "templateId": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Stages"
+        ],
+        "summary": "Update all stages",
+        "description": "Replaces all stages on an existing approval with the given stage data. The asset must be in an editable state.",
+        "operationId": "putStages",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "stages": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/StageBody"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/stages/{stageId}": {
+      "patch": {
+        "tags": [
+          "Stages"
+        ],
+        "summary": "Update a stage",
+        "description": "Partially updates any field on the specified stage. The asset must be in an editable state.",
+        "operationId": "patchStage",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StageBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Stages"
+        ],
+        "summary": "Delete a stage",
+        "description": "Deletes the specified stage from the approval. The asset must be in an editable state.",
+        "operationId": "deleteStage",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/stages/{stageId}/lock": {
+      "put": {
+        "tags": [
+          "Stages"
+        ],
+        "summary": "Lock a stage",
+        "description": "Locks the specified stage. All decisions on the stage must have been made before locking. The asset must be in an editable state.",
+        "operationId": "lockStage",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/stages/{stageId}/unlock": {
+      "put": {
+        "tags": [
+          "Stages"
+        ],
+        "summary": "Unlock a stage",
+        "description": "Unlocks the specified stage, making it editable again. The asset must be in an editable state.",
+        "operationId": "unlockStage",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/decisions": {
+      "post": {
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Make decisions",
+        "description": "Makes a decision on one or more stages. If the decision already exists it will be updated. Overall stage and approval status is recalculated after each decision. Throws an error if the approval is not found or the current user is not a participant.",
+        "operationId": "makeDecisions",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "description": "The decision value (e.g. `approved`, `needs work`, `approved with changes`, `reviewed`)"
+                  },
+                  "stageIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Stage IDs to apply the decision to. Defaults to all active stages if omitted."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Delete decisions",
+        "description": "Removes the current user's decision(s) from all active stages. The approval must be active.",
+        "operationId": "deleteDecisions",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/decisions/stage/{stageId}": {
+      "post": {
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Make decision on a stage",
+        "description": "Makes a decision on a specific stage. Equivalent to `POST /decisions` with a single stage ID.",
+        "operationId": "makeDecisionOnStage",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "description": "The decision value"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Delete decision on a stage",
+        "description": "Removes the current user's decision from the specified stage.",
+        "operationId": "deleteDecisionOnStage",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/getSuggestedParticipants": {
+      "get": {
+        "tags": [
+          "Participants"
+        ],
+        "summary": "Get suggested participants",
+        "description": "Returns participant suggestions derived from the previous document version's approval.",
+        "operationId": "getSuggestedParticipants",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "participantSuggestions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "participantId": {
+                            "type": "string"
+                          },
+                          "participantType": {
+                            "type": "string"
+                          },
+                          "participantRole": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "prevVersionWithApprovers": {
+                      "type": "string",
+                      "description": "The prior document version that had approvers"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/participants": {
+      "post": {
+        "tags": [
+          "Participants"
+        ],
+        "summary": "Add participants",
+        "description": "Adds one or more participants to an approval. If the approval does not yet exist, one will be created. If a participant already exists they will be merged and updated. The asset must be in an editable state.",
+        "operationId": "addParticipants",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ParticipantBody"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/participants/{participantType}/{participantId}": {
+      "delete": {
+        "tags": [
+          "Participants"
+        ],
+        "summary": "Delete participant",
+        "description": "Removes a participant from the approval. If all participants are removed, the stage and approval are also deleted. The asset must be in an editable state.",
+        "operationId": "deleteParticipant",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/ParticipantType"
+          },
+          {
+            "$ref": "#/components/parameters/ParticipantId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/ApprovalResponse"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/participants/{participantId}/remind": {
+      "post": {
+        "tags": [
+          "Participants"
+        ],
+        "summary": "Remind participant",
+        "description": "Sends a reminder notification to the specified participant. The approval must exist and be in an editable state.",
+        "operationId": "remindParticipant",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/ParticipantId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reminder sent"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/participants/remindUndecided": {
+      "post": {
+        "tags": [
+          "Participants"
+        ],
+        "summary": "Remind all undecided participants",
+        "description": "Sends reminder notifications to all participants across all stages who have not yet made a decision.",
+        "operationId": "remindUndecidedParticipants",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reminders sent"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/stages/{stageId}/participants/{participantId}/remind": {
+      "post": {
+        "tags": [
+          "Participants"
+        ],
+        "summary": "Remind participant on a stage",
+        "description": "Sends a reminder notification to a specific participant within a specific stage.",
+        "operationId": "remindMultiStageParticipant",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/ParticipantId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reminder sent"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/stages/{stageId}/participants/remindUndecided": {
+      "post": {
+        "tags": [
+          "Participants"
+        ],
+        "summary": "Remind undecided participants on a stage",
+        "description": "Sends reminder notifications to all undecided participants within a specific stage.",
+        "operationId": "remindMultiStageUndecidedParticipants",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reminders sent"
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/{assetType}/{assetId}/history": {
+      "get": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Get approval history",
+        "description": "Returns the event history for an approval.",
+        "operationId": "getApprovalHistory",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApprovalHistory"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/search/{assetType}": {
+      "post": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Search approvals by asset type",
+        "description": "If a body with asset IDs is provided, returns approvals for those assets. Otherwise returns all approvals on projects owned by the current user that are in the current status.",
+        "operationId": "searchApprovalsByAssetType",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "assetIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "assetType": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "approvals": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Approval"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/lock": {
+      "put": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Lock approvals",
+        "description": "Locks the stage and overall approval for the given asset IDs. All decisions on the stage must have been made before locking.",
+        "operationId": "lockApprovals",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "assetIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "assetType": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assetIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "assetType": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/unlock": {
+      "put": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Unlock approvals",
+        "description": "Unlocks the stage and overall approval for the given asset IDs.",
+        "operationId": "unlockApprovals",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "assetIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "assetType": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "assetIds": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "assetType": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/frame/assetSyncStatus/{assetId}": {
+      "get": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Check Frame.io asset sync status",
+        "description": "Checks whether a Frame.io asset referenced by the given Workfront document version ID has finished syncing and is ready for use.",
+        "operationId": "isFrameAssetReady",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Frame API response — array of matching assets",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "media_type": {
+                        "type": "string"
+                      },
+                      "file_size": {
+                        "type": "number"
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "version": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "description": "Asset not found in Frame.io",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "detail": {
+                            "type": "string"
+                          },
+                          "title": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/search": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search approvals",
+        "description": "Searches approvals with rich filtering. Supports cursor-based pagination.",
+        "operationId": "searchApprovals",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "description": "Workfront project ID(s)",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "folderId": {
+                    "description": "Workfront folder ID(s). Use `null` to search the root folder.",
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    ]
+                  },
+                  "assetType": {
+                    "description": "Asset type(s) to filter by",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "assetId": {
+                    "description": "Asset ID(s) to filter by",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "approvalStatus": {
+                    "type": "string"
+                  },
+                  "creatorId": {
+                    "type": "string"
+                  },
+                  "createdDateFrom": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "createdDateTo": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "productId": {
+                    "type": "string"
+                  },
+                  "stageStatus": {
+                    "description": "Stage status value(s) to filter by",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "stageDeadlineDateFrom": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "stageDeadlineDateTo": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "participantType": {
+                    "type": "string"
+                  },
+                  "participantId": {
+                    "type": "string"
+                  },
+                  "participantRole": {
+                    "type": "string"
+                  },
+                  "participantStatus": {
+                    "description": "Participant status value(s) to filter by",
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "overdue": {
+                    "type": "boolean"
+                  },
+                  "view": {
+                    "type": "string",
+                    "description": "View preset that controls which fields are returned"
+                  },
+                  "cursor": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Pagination cursor from a previous response"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "description": "Approval object shape may vary by `view` parameter"
+                      }
+                    },
+                    "cursor": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Pass to the next request to fetch the next page"
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "approvalGuid": "6744feadafbbfb97a7c1c325",
+                      "assetId": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5",
+                      "assetType": "DOCV",
+                      "status": "approved",
+                      "createdAt": "2024-11-25T22:48:13.598Z"
+                    }
+                  ],
+                  "cursor": "eyJjdXJzb3IiOnsic3RhZ2VJZCI6ImRldmVsb3Blci1yZXZpZXcifX0="
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/search/approvals": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search approvals (v2)",
+        "description": "Searches approvals using the same filter set as `POST /api/v1/approvals/search` but routed through the dedicated search service.",
+        "operationId": "searchApprovalsV2",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "folderId": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    ]
+                  },
+                  "assetType": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "assetId": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "approvalStatus": {
+                    "type": "string"
+                  },
+                  "creatorId": {
+                    "type": "string"
+                  },
+                  "createdDateFrom": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "createdDateTo": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "productId": {
+                    "type": "string"
+                  },
+                  "stageStatus": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "stageDeadlineDateFrom": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "stageDeadlineDateTo": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "participantType": {
+                    "type": "string"
+                  },
+                  "participantId": {
+                    "type": "string"
+                  },
+                  "participantRole": {
+                    "type": "string"
+                  },
+                  "participantStatus": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ]
+                  },
+                  "overdue": {
+                    "type": "boolean"
+                  },
+                  "view": {
+                    "type": "string"
+                  },
+                  "cursor": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    },
+                    "cursor": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/templates": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "List templates",
+        "description": "Returns all approval templates visible to the current user.",
+        "operationId": "getTemplates",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Template"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Create template",
+        "description": "Creates an approval template. A customer can create a maximum of 1000 templates. Requires template management permissions.",
+        "operationId": "createTemplate",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/templates/{templateId}": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Get template",
+        "description": "Returns a single approval template by ID.",
+        "operationId": "getTemplate",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TemplateId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Replace template",
+        "description": "Fully replaces an approval template. Requires template management permissions.",
+        "operationId": "putTemplate",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TemplateId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Update template",
+        "description": "Partially updates an approval template. Requires template management permissions.",
+        "operationId": "patchTemplate",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TemplateId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Template"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Delete template",
+        "description": "Deletes a single approval template. Requires template management permissions.",
+        "operationId": "deleteTemplate",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/TemplateId"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/templates/bulkDelete/{ids}": {
+      "delete": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Bulk delete templates",
+        "description": "Deletes multiple approval templates in one call. IDs are comma-separated in the path. Requires template management permissions.",
+        "operationId": "bulkDeleteTemplates",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ids",
+            "in": "path",
+            "required": true,
+            "description": "Comma-separated list of template IDs to delete",
+            "schema": {
+              "type": "string",
+              "example": "templateId1,templateId2,templateId3"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Templates deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/bots": {
+      "get": {
+        "tags": [
+          "Bots"
+        ],
+        "summary": "List bots",
+        "description": "Returns a paginated list of bot accounts available in the current customer's Workfront instance.",
+        "operationId": "getBots",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "metadata",
+                    "items"
+                  ],
+                  "properties": {
+                    "metadata": {
+                      "type": "object",
+                      "properties": {
+                        "totalItems": {
+                          "type": "integer"
+                        },
+                        "currentPage": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "id",
+                          "type",
+                          "associatedTechnicalAccountId",
+                          "user"
+                        ],
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          },
+                          "associatedTechnicalAccountId": {
+                            "type": "string"
+                          },
+                          "user": {
+                            "type": "object",
+                            "required": [
+                              "ID",
+                              "eauthUserID",
+                              "name",
+                              "emailAddr",
+                              "isActive"
+                            ],
+                            "properties": {
+                              "ID": {
+                                "type": "string"
+                              },
+                              "eauthUserID": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "emailAddr": {
+                                "type": "string"
+                              },
+                              "isBot": {
+                                "type": "boolean"
+                              },
+                              "isActive": {
+                                "type": "boolean"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    }
+  }
+}

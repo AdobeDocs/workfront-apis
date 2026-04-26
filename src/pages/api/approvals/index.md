@@ -27,6 +27,8 @@ This documentation provides instructions for using Workfront Unified Approvals A
 
 [Unified Approvals API](/api/approvals/unified-approvals.md)
 
+[Unified Approvals Connector API](/api/approvals/unified-approvals-connector.md)
+
 [ProofHQ API](https://api.proofhq.com/)
 
 \<br/\>
