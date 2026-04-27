@@ -1222,8 +1222,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Approval deleted successfully"
+          "204": {
+            "description": "Approval deleted successfully — no content returned"
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -3250,10 +3250,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Template"
-                  }
+                  "type": "object",
+                  "properties": {
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Template"
+                      }
+                    }
+                  },
+                  "required": [
+                    "templates"
+                  ]
                 }
               }
             }
