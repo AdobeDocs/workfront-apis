@@ -3,7 +3,7 @@
   "info": {
     "title": "Unified Approvals Connector",
     "version": "1.0",
-    "description": "The Unified Approvals Connector is a Fastify service that bridges Workfront (Redrock) and the Unified Approvals system. It manages document-version approvals, multi-stage workflows, participant management, template CRUD, and decision-making.\n\n## Authentication\n\nThe connector supports three authentication methods:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **WorkfrontAuthCookie** | `wf-auth` cookie | Browser-based Workfront sessions |\n| **WorkfrontAuthHeader** | `wf-auth` header | Server-to-server calls from Workfront services |\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept any of the three auth methods.\n\nFor Bearer token auth, the following Workfront context headers are also required:\n- `wf-subdomain` or `x-gw-subdomain` — customer Workfront subdomain\n- `wf-customerid` — Workfront customer ID\n- `wf-userid` — Workfront user ID\n- `wf-lane` — Workfront deployment lane (e.g. `prod`, `devtest`)\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals/` | Complex |\n| Templates | `/api/v1/templates/` | Complex |\n| Search | `/api/v1/search/` | Complex |\n| Bots | `/api/v1/bots/` | Complex |",
+    "description": "The Unified Approvals Connector is a Fastify service that bridges Workfront (Redrock) and the Unified Approvals system. It manages document-version approvals, multi-stage workflows, participant management, template CRUD, and decision-making.\n\n## Authentication\n\nThe connector supports three authentication methods:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **WorkfrontAuthCookie** | `wf-auth` cookie | Browser-based Workfront sessions |\n| **WorkfrontAuthHeader** | `wf-auth` header | Server-to-server calls from Workfront services |\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept any of the three auth methods.\n\nFor Bearer token auth, the following Workfront context headers are also required:\n- `wf-subdomain` or `x-gw-subdomain` — customer Workfront subdomain\n- `wf-customerid` — Workfront customer ID\n- `wf-userid` — Workfront user ID\n- `wf-lane` — Workfront deployment lane (e.g. `prod`, `devtest`)\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals/` | Complex |\n| Templates | `/api/v1/templates/` | Complex |\n| Search | `/api/v1/search/` | Complex |\n| Bots | `/api/v1/bots/` | Complex |\n| Reviews | `/api/v1/reviews/` | Complex |",
     "contact": {
       "name": "",
       "email": "",
@@ -44,6 +44,10 @@
     {
       "name": "Bots",
       "description": "Bot account management"
+    },
+    {
+      "name": "Reviews",
+      "description": "AI brand review results proxied from the Bot Registry"
     }
   ],
   "components": {
@@ -3739,6 +3743,124 @@
                 }
               }
             }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/reviews": {
+      "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "List AI brand reviews",
+        "description": "Returns AI brand reviews from the Bot Registry. Results are proxied directly from the Bot Registry service.",
+        "operationId": "getReviews",
+        "security": [
+          {
+            "WorkfrontAuthCookie": []
+          },
+          {
+            "WorkfrontAuthHeader": []
+          },
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "name": "parentObjType",
+            "in": "query",
+            "description": "Type of the parent object",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DOCU"
+              ]
+            }
+          },
+          {
+            "name": "objType",
+            "in": "query",
+            "description": "Type of the object being reviewed",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DOCV"
+              ]
+            }
+          },
+          {
+            "name": "parentObjId",
+            "in": "query",
+            "description": "ID of the parent object",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "objId",
+            "in": "query",
+            "description": "ID of the object being reviewed",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "reviews"
+                  ],
+                  "properties": {
+                    "reviews": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
