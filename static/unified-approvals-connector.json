@@ -3,7 +3,7 @@
   "info": {
     "title": "Unified Approvals Connector",
     "version": "1.0",
-    "description": "The Unified Approvals Connector is a Fastify service that bridges Workfront (Redrock) and the Unified Approvals system. It manages document-version approvals, multi-stage workflows, participant management, template CRUD, and decision-making.\n\n## Authentication\n\nThe connector supports three authentication methods:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **WorkfrontAuthCookie** | `wf-auth` cookie | Browser-based Workfront sessions |\n| **WorkfrontAuthHeader** | `wf-auth` header | Server-to-server calls from Workfront services |\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept any of the three auth methods.\n\nFor Bearer token auth, the following Workfront context headers are also required:\n- `wf-subdomain` or `x-gw-subdomain` — customer Workfront subdomain\n- `wf-customerid` — Workfront customer ID\n- `wf-userid` — Workfront user ID\n- `wf-lane` — Workfront deployment lane (e.g. `prod`, `devtest`)\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals/` | Complex |\n| Templates | `/api/v1/templates/` | Complex |\n| Bots | `/api/v1/bots/` | Complex |\n| Reviews | `/api/v1/reviews/` | Complex |",
+    "description": "The Unified Approvals Connector is a Fastify service that bridges Workfront (Redrock) and the Unified Approvals system. It manages document-version approvals, multi-stage workflows, participant management, template CRUD, and decision-making.\n\n## Authentication\n\nThe connector supports one authentication method:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept Bearer token auth.\n\nFor Bearer token auth, the following Workfront context headers are also required:\n- `x-api-key` \u2014 API key from Adobe Developer Console\n- `x-gw-subdomain` \u2014 customer Workfront subdomain\n- `wf-customerid` \u2014 Workfront customer ID\n- `wf-userid` \u2014 Workfront user ID\n- `wf-lane` \u2014 Workfront deployment lane (e.g. `prod`, `devtest`)\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals/` | Complex |\n| Templates | `/api/v1/templates/` | Complex |\n| Bots | `/api/v1/bots/` | Complex |\n| Reviews | `/api/v1/reviews/` | Complex |",
     "contact": {
       "name": "",
       "email": "",
@@ -48,23 +48,11 @@
   ],
   "components": {
     "securitySchemes": {
-      "WorkfrontAuthCookie": {
-        "type": "apiKey",
-        "in": "cookie",
-        "name": "wf-auth",
-        "description": "Workfront auth JWT issued as a session cookie"
-      },
-      "WorkfrontAuthHeader": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "wf-auth",
-        "description": "Workfront auth JWT passed as a request header"
-      },
       "Bearer": {
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "IMS Bearer token from Adobe IO / Developer Console. When used, the following context headers are also required: `wf-subdomain` (or `x-gw-subdomain`), `wf-customerid`, `wf-userid`, `wf-lane`."
+        "description": "IMS Bearer token from Adobe IO / Developer Console. When used, the following context headers are also required: `x-api-key`, `x-gw-subdomain`, `wf-customerid`, `wf-userid`, `wf-lane`."
       }
     },
     "parameters": {
@@ -155,7 +143,7 @@
         "name": "x-correlation-id",
         "in": "header",
         "required": false,
-        "description": "Unique identifier for correlation across multiple service calls.",
+        "description": "Unique identifier for correlation across multiple service calls. Auto-generated if not provided.",
         "schema": {
           "type": "string"
         }
@@ -1023,7 +1011,7 @@
         }
       },
       "UnauthorizedResponse": {
-        "description": "Unauthorized — no valid auth credentials provided",
+        "description": "Unauthorized \u2014 no valid auth credentials provided",
         "content": {
           "application/json": {
             "schema": {
@@ -1043,7 +1031,7 @@
         }
       },
       "BadRequestResponse": {
-        "description": "Bad Request — validation failure or invalid state",
+        "description": "Bad Request \u2014 validation failure or invalid state",
         "content": {
           "application/json": {
             "schema": {
@@ -1074,12 +1062,6 @@
         "description": "Get approval details for an asset.",
         "operationId": "getApproval",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1124,12 +1106,6 @@
         "description": "Creates an approval for an ESM document with the given stage data. If a `templateId` is provided the stage structure is loaded from that template.",
         "operationId": "createApproval",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1198,12 +1174,6 @@
         "operationId": "deleteApproval",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1223,7 +1193,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Approval deleted successfully — no content returned"
+            "description": "Approval deleted successfully \u2014 no content returned"
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -1249,12 +1219,6 @@
         "description": "Returns suggested approval payloads derived from prior document versions, shaped for use when creating a new approval on the current asset. Results are ordered newest version first.",
         "operationId": "getSuggestedApprovals",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1331,12 +1295,6 @@
         "operationId": "postStages",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1403,12 +1361,6 @@
         "operationId": "putStages",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1473,12 +1425,6 @@
         "operationId": "patchStage",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1536,12 +1482,6 @@
         "operationId": "deleteStage",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1590,12 +1530,6 @@
         "description": "Locks the specified stage. All decisions on the stage must have been made before locking. The asset must be in an editable state.",
         "operationId": "lockStage",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1646,12 +1580,6 @@
         "operationId": "unlockStage",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1700,12 +1628,6 @@
         "description": "Makes a decision on one or more stages. If the decision already exists it will be updated. Overall stage and approval status is recalculated after each decision. Throws an error if the approval is not found or the current user is not a participant.",
         "operationId": "makeDecisions",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1774,12 +1696,6 @@
         "operationId": "deleteDecisions",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1825,12 +1741,6 @@
         "description": "Makes a decision on a specific stage. Equivalent to `POST /decisions` with a single stage ID.",
         "operationId": "makeDecisionOnStage",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1895,12 +1805,6 @@
         "operationId": "deleteDecisionOnStage",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1949,12 +1853,6 @@
         "description": "Returns participant suggestions derived from the previous document version's approval.",
         "operationId": "getSuggestedParticipants",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2029,12 +1927,6 @@
         "operationId": "addParticipants",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -2094,12 +1986,6 @@
         "operationId": "deleteParticipant",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -2152,12 +2038,6 @@
         "operationId": "remindParticipant",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -2207,12 +2087,6 @@
         "operationId": "remindUndecidedParticipants",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -2258,12 +2132,6 @@
         "description": "Sends a reminder notification to a specific participant within a specific stage.",
         "operationId": "remindMultiStageParticipant",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2317,12 +2185,6 @@
         "operationId": "remindMultiStageUndecidedParticipants",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -2371,12 +2233,6 @@
         "description": "Returns the event history for an approval.",
         "operationId": "getApprovalHistory",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2433,12 +2289,6 @@
         "description": "If a body with asset IDs is provided, returns approvals for those assets. Otherwise returns all approvals on projects owned by the current user that are in the current status.",
         "operationId": "searchApprovalsByAssetType",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2514,12 +2364,6 @@
         "description": "Locks the stage and overall approval for the given asset IDs. All decisions on the stage must have been made before locking.",
         "operationId": "lockApprovals",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2600,12 +2444,6 @@
         "operationId": "unlockApprovals",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -2685,12 +2523,6 @@
         "operationId": "getTemplates",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -2740,12 +2572,6 @@
         "description": "Creates an approval template. A customer can create a maximum of 1000 templates. Requires template management permissions.",
         "operationId": "createTemplate",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2801,12 +2627,6 @@
         "operationId": "getTemplate",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -2851,12 +2671,6 @@
         "description": "Fully replaces an approval template. Requires template management permissions.",
         "operationId": "putTemplate",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2916,12 +2730,6 @@
         "operationId": "patchTemplate",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -2980,12 +2788,6 @@
         "operationId": "deleteTemplate",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -3025,12 +2827,6 @@
         "description": "Deletes multiple approval templates in one call. IDs are comma-separated in the path. Requires template management permissions.",
         "operationId": "bulkDeleteTemplates",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -3075,12 +2871,6 @@
         "description": "Returns a paginated list of bot accounts available in the current customer's Workfront instance.",
         "operationId": "getBots",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -3216,12 +3006,6 @@
         "description": "Returns AI brand reviews from the Bot Registry. Results are proxied directly from the Bot Registry service.",
         "operationId": "getReviews",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
