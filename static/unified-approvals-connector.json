@@ -558,6 +558,9 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "wfMetadata": {
+            "$ref": "#/components/schemas/ParticipantWfMetadata"
           }
         }
       },
@@ -1093,23 +1096,34 @@
           },
           "emailAddr": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "User's email address. Populated only when `participantType` is `USER`."
           },
           "licenseType": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Workfront license tier of the user. Populated only when `participantType` is `USER`."
           },
           "eauthUserID": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "IMS-bound external authentication user ID. Populated only when `participantType` is `USER`."
           },
           "avatarDate": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Avatar version timestamp used to bust the avatar image cache. Populated only when `participantType` is `USER`."
           },
           "linkTo": {
             "type": "string",
             "nullable": true
+          },
+          "teamMembers": {
+            "type": "array",
+            "description": "Members of the team. Populated only when `participantType` is `TEAMOB`.",
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            }
           }
         }
       },
@@ -1605,6 +1619,148 @@
             "$ref": "#/components/schemas/ParticipantTeamMetadata"
           }
         ]
+      },
+      "TeamMember": {
+        "type": "object",
+        "description": "Workfront user that is a member of a team participant.",
+        "properties": {
+          "ID": {
+            "type": "string",
+            "description": "Workfront user ID."
+          },
+          "name": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "emailAddr": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "locale": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ParticipantUserWfMetadata": {
+        "type": "object",
+        "description": "Workfront-derived enrichment fields populated when `participantType` is `USER`.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name of the user."
+          },
+          "emailAddr": {
+            "type": "string",
+            "nullable": true,
+            "description": "User's email address."
+          },
+          "licenseType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Workfront license tier."
+          },
+          "wfUserId": {
+            "type": "string",
+            "description": "Workfront internal user ID."
+          },
+          "eauthUserID": {
+            "type": "string",
+            "nullable": true,
+            "description": "IMS-bound external authentication user ID."
+          },
+          "avatarDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "Avatar version timestamp used to bust avatar cache."
+          }
+        }
+      },
+      "ParticipantTeamWfMetadata": {
+        "type": "object",
+        "description": "Workfront-derived enrichment fields populated when `participantType` is `TEAMOB`.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Team display name."
+          },
+          "avatarDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "teamMembers": {
+            "type": "array",
+            "description": "Members of the team.",
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            }
+          }
+        }
+      },
+      "ParticipantWfMetadata": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "Workfront-derived enrichment fields for the participant. The shape depends on `participantType` \u2014 see `ParticipantUserWfMetadata` and `ParticipantTeamWfMetadata`.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ParticipantUserWfMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/ParticipantTeamWfMetadata"
+          }
+        ]
+      },
+      "ApprovalDeletedResponse": {
+        "type": "object",
+        "description": "Returned when removing the last remaining participant on the approval causes the approval itself to be deleted. The body contains user-context flags only (no approval payload), with `deleted: true` to signal the cascading delete.",
+        "required": [
+          "deleted"
+        ],
+        "properties": {
+          "deleted": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Always `true` on this response shape; the approval no longer exists."
+          },
+          "isApprovalActive": {
+            "type": "boolean",
+            "description": "Whether the version being accessed is the document's active head version."
+          },
+          "userInfo": {
+            "type": "object",
+            "properties": {
+              "isEditable": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "hasLicenseAccess": {
+                "type": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "frameSyncStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "isEsmAsset": {
+            "type": "boolean"
+          }
+        }
       }
     },
     "responses": {
@@ -1760,8 +1916,9 @@
           }
         },
         "responses": {
-          "200": {
-            "$ref": "#/components/responses/ApprovalResponse"
+          "201": {
+            "$ref": "#/components/responses/ApprovalResponse",
+            "description": "Approval created."
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -2638,7 +2795,21 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/ApprovalResponse"
+            "description": "OK. Returns the updated approval when participants remain. When removing this participant empties the approval, the approval is deleted and the response is an `ApprovalDeletedResponse` envelope with `deleted: true` instead of the full approval payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Approval"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApprovalDeletedResponse"
+                    }
+                  ]
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -2700,6 +2871,41 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "participantId"
+                ],
+                "properties": {
+                  "participantId": {
+                    "type": "string",
+                    "description": "ID of the participant to remind. Must match the `participantId` in the URL path."
+                  },
+                  "participantType": {
+                    "type": "string",
+                    "enum": [
+                      "USER",
+                      "TEAMOB"
+                    ],
+                    "description": "Optional. Type of the participant being reminded.\n\n- `USER` \u2014 Individual Workfront user (or AI bot user).\n- `TEAMOB` \u2014 Workfront team."
+                  },
+                  "participantRole": {
+                    "type": "string",
+                    "enum": [
+                      "approver",
+                      "reviewer"
+                    ],
+                    "description": "Optional. Role of the participant being reminded.\n\n- `approver` \u2014 Has a binding vote.\n- `reviewer` \u2014 Non-binding."
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2799,6 +3005,41 @@
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
           }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "participantId"
+                ],
+                "properties": {
+                  "participantId": {
+                    "type": "string",
+                    "description": "ID of the participant to remind. Must match the `participantId` in the URL path."
+                  },
+                  "participantType": {
+                    "type": "string",
+                    "enum": [
+                      "USER",
+                      "TEAMOB"
+                    ],
+                    "description": "Optional. Type of the participant being reminded.\n\n- `USER` \u2014 Individual Workfront user (or AI bot user).\n- `TEAMOB` \u2014 Workfront team."
+                  },
+                  "participantRole": {
+                    "type": "string",
+                    "enum": [
+                      "approver",
+                      "reviewer"
+                    ],
+                    "description": "Optional. Role of the participant being reminded.\n\n- `approver` \u2014 Has a binding vote.\n- `reviewer` \u2014 Non-binding."
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2897,176 +3138,6 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/ApprovalHistory"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestResponse"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundResponse"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
-        }
-      }
-    },
-    "/api/v1/approvals/lock": {
-      "put": {
-        "tags": [
-          "Approvals"
-        ],
-        "summary": "Lock approvals",
-        "description": "Locks the stage and overall approval for the given asset IDs. All decisions on the stage must have been made before locking.",
-        "operationId": "lockApprovals",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/XRequestId"
-          },
-          {
-            "$ref": "#/components/parameters/XCorrelationId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "assetIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "assetType": {
-                    "type": "string",
-                    "enum": [
-                      "DOCV"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "assetIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "assetType": {
-                      "type": "string",
-                      "enum": [
-                        "DOCV"
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestResponse"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundResponse"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
-        }
-      }
-    },
-    "/api/v1/approvals/unlock": {
-      "put": {
-        "tags": [
-          "Approvals"
-        ],
-        "summary": "Unlock approvals",
-        "description": "Unlocks the stage and overall approval for the given asset IDs.",
-        "operationId": "unlockApprovals",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/XRequestId"
-          },
-          {
-            "$ref": "#/components/parameters/XCorrelationId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "assetIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "assetType": {
-                    "type": "string",
-                    "enum": [
-                      "DOCV"
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "assetIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "assetType": {
-                      "type": "string",
-                      "enum": [
-                        "DOCV"
-                      ]
-                    }
                   }
                 }
               }
@@ -3377,8 +3448,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Template deleted"
+          "204": {
+            "description": "Template deleted. No content."
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
@@ -3425,7 +3496,28 @@
         ],
         "responses": {
           "200": {
-            "description": "Templates deleted"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "acknowledged": {
+                      "type": "boolean",
+                      "description": "Whether MongoDB acknowledged the bulk-delete operation."
+                    },
+                    "deletedCount": {
+                      "type": "integer",
+                      "description": "Number of templates actually deleted."
+                    }
+                  },
+                  "example": {
+                    "acknowledged": true,
+                    "deletedCount": 2
+                  }
+                }
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
@@ -3832,6 +3924,18 @@
                       "type": "string",
                       "nullable": true,
                       "description": "Cursor for the next page, or null when no more results."
+                    },
+                    "translationTime": {
+                      "type": "number",
+                      "description": "Time spent translating the request filters into the underlying search query, in milliseconds."
+                    },
+                    "searchTime": {
+                      "type": "number",
+                      "description": "Time spent executing the search itself, in milliseconds."
+                    },
+                    "totalTime": {
+                      "type": "number",
+                      "description": "Total round-trip time spent inside the connector for this request, in milliseconds. Includes both translation and search."
                     }
                   }
                 }
