@@ -383,7 +383,7 @@
               "needs work",
               "reviewed"
             ],
-            "description": "Lifecycle status of the stage.\n\n- `not started` \u2014 Stage exists but has not been activated yet (waiting for parent stages to complete).\n- `pending review` \u2014 Stage is active and awaiting participant decisions.\n- `in review` \u2014 Stage is active and at least one participant has not yet decided.\n- `approved` \u2014 All participants on this stage have approved.\n- `approved with changes` \u2014 All participants have decided; at least one approved with changes.\n- `needs work` \u2014 At least one participant on this stage returned needs work.\n- `reviewed` \u2014 All reviewer participants have reviewed."
+            "description": "Lifecycle status of the stage.\n\n- `not started` \u2014 Stage has not yet been triggered to `isActive`. Set on creation and remains until the stage's activation trigger fires (typically when its parent stages complete).\n- `pending review` \u2014 Stage is active and awaiting participant decisions.\n- `in review` \u2014 Stage is active and at least one participant has not yet decided.\n- `approved` \u2014 All required participants on this stage have approved.\n- `approved with changes` \u2014 All required participants have decided, at least one has chosen `approved with changes`, and the rest have chosen `approved` or `approved with changes`. If any required participant has returned `needs work`, the stage rolls up to `needs work` instead.\n- `needs work` \u2014 At least one required participant has responded with `needs work`. `needs work` outranks `approved` and `approved with changes`, so the stage rolls up to this status whenever any required participant has returned `needs work`.\n- `reviewed` \u2014 All reviewer participants have reviewed."
           },
           "deadlineDate": {
             "type": "string",
@@ -527,8 +527,6 @@
           "status": {
             "type": "string",
             "enum": [
-              "not started",
-              "not required",
               "notified",
               "opened",
               "commented",
@@ -537,7 +535,7 @@
               "needs work",
               "reviewed"
             ],
-            "description": "Lifecycle status of this participant on the stage.\n\n- `not started` \u2014 Participant has not yet been activated on the stage (e.g. their stage is gated by a parent stage that has not completed).\n- `not required` \u2014 Participant is on the stage but their decision is not required for stage progression.\n- `notified` \u2014 Participant has been sent a notification but has not yet opened or decided.\n- `opened` \u2014 Participant has opened the review but has not yet decided.\n- `commented` \u2014 Participant has left a comment but has not made a final decision.\n- `approved` \u2014 Participant has approved.\n- `approved with changes` \u2014 Participant has approved with changes requested.\n- `needs work` \u2014 Participant returned needs work.\n- `reviewed` \u2014 Participant has marked the review complete (reviewer role only)."
+            "description": "Lifecycle status of this participant on the stage.\n\n- `notified` \u2014 Participant has been sent a notification but has not yet opened or decided.\n- `opened` \u2014 Participant has opened the review but has not yet decided.\n- `commented` \u2014 Participant has left a comment but has not made a final decision.\n- `approved` \u2014 Participant has approved.\n- `approved with changes` \u2014 Participant has approved with changes requested.\n- `needs work` \u2014 Participant returned needs work.\n- `reviewed` \u2014 Participant has marked the review complete (reviewer role only)."
           },
           "activities": {
             "type": "array",
@@ -3694,7 +3692,7 @@
                     "description": "Identifier of the Workfront product the approval is associated with. Always `workfront` for the Unified Approvals Connector."
                   },
                   "stageStatus": {
-                    "description": "Filter by stage lifecycle status. Pass a single value or an array. Matches the values returned in `ApprovalStage.status`.\n\n- `not started` \u2014 Stage exists but has not been activated yet (waiting for parent stages to complete).\n- `pending review` \u2014 Stage is active and awaiting participant decisions.\n- `in review` \u2014 Stage is active and at least one participant has not yet decided.\n- `approved` \u2014 All participants on this stage have approved.\n- `approved with changes` \u2014 All participants have decided; at least one approved with changes.\n- `needs work` \u2014 At least one participant on this stage returned needs work.\n- `reviewed` \u2014 All reviewer participants have reviewed.",
+                    "description": "Filter by stage lifecycle status. Pass a single value or an array. Matches the values returned in `ApprovalStage.status`.\n\n- `not started` \u2014 Stage has not yet been triggered to `isActive`. Set on creation and remains until the stage's activation trigger fires (typically when its parent stages complete).\n- `pending review` \u2014 Stage is active and awaiting participant decisions.\n- `in review` \u2014 Stage is active and at least one participant has not yet decided.\n- `approved` \u2014 All required participants on this stage have approved.\n- `approved with changes` \u2014 All required participants have decided, at least one has chosen `approved with changes`, and the rest have chosen `approved` or `approved with changes`. If any required participant has returned `needs work`, the stage rolls up to `needs work` instead.\n- `needs work` \u2014 At least one required participant has responded with `needs work`. `needs work` outranks `approved` and `approved with changes`, so the stage rolls up to this status whenever any required participant has returned `needs work`.\n- `reviewed` \u2014 All reviewer participants have reviewed.",
                     "oneOf": [
                       {
                         "type": "string",
@@ -3753,13 +3751,11 @@
                     "description": "Role this participant plays on the stage.\n\n- `approver` \u2014 Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` \u2014 Non-binding; can mark reviewed but does not block approval progression.\n\nThe role, combined with the participant's current decision, also drives the `userInfo.action` value on every approval response \u2014 see [`Approval.userInfo.action`](#section/Schemas/Approval) for the role/decision \u2192 action mapping."
                   },
                   "participantStatus": {
-                    "description": "Filter by participant lifecycle status. Pass a single value or an array. Matches the values returned in `ApprovalStageParticipant.status`.\n\n- `not started` \u2014 Participant has not yet been activated on the stage (e.g. their stage is gated by a parent stage that has not completed).\n- `not required` \u2014 Participant is on the stage but their decision is not required for stage progression.\n- `notified` \u2014 Participant has been sent a notification but has not yet opened or decided.\n- `opened` \u2014 Participant has opened the review but has not yet decided.\n- `commented` \u2014 Participant has left a comment but has not made a final decision.\n- `approved` \u2014 Participant has approved.\n- `approved with changes` \u2014 Participant has approved with changes requested.\n- `needs work` \u2014 Participant returned needs work.\n- `reviewed` \u2014 Participant has marked the review complete (reviewer role only).",
+                    "description": "Filter by participant lifecycle status. Pass a single value or an array. Matches the values returned in `ApprovalStageParticipant.status`.\n\n- `notified` \u2014 Participant has been sent a notification but has not yet opened or decided.\n- `opened` \u2014 Participant has opened the review but has not yet decided.\n- `commented` \u2014 Participant has left a comment but has not made a final decision.\n- `approved` \u2014 Participant has approved.\n- `approved with changes` \u2014 Participant has approved with changes requested.\n- `needs work` \u2014 Participant returned needs work.\n- `reviewed` \u2014 Participant has marked the review complete (reviewer role only).",
                     "oneOf": [
                       {
                         "type": "string",
                         "enum": [
-                          "not started",
-                          "not required",
                           "notified",
                           "opened",
                           "commented",
@@ -3774,8 +3770,6 @@
                         "items": {
                           "type": "string",
                           "enum": [
-                            "not started",
-                            "not required",
                             "notified",
                             "opened",
                             "commented",
