@@ -3924,18 +3924,6 @@
                       "type": "string",
                       "nullable": true,
                       "description": "Cursor for the next page, or null when no more results."
-                    },
-                    "translationTime": {
-                      "type": "number",
-                      "description": "Time spent translating the request filters into the underlying search query, in milliseconds."
-                    },
-                    "searchTime": {
-                      "type": "number",
-                      "description": "Time spent executing the search itself, in milliseconds."
-                    },
-                    "totalTime": {
-                      "type": "number",
-                      "description": "Total round-trip time spent inside the connector for this request, in milliseconds. Includes both translation and search."
                     }
                   }
                 }
