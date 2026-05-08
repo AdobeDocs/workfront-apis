@@ -702,29 +702,6 @@
           }
         }
       },
-      "ApprovalHistory": {
-        "type": "object",
-        "properties": {
-          "author": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              }
-            }
-          },
-          "creationDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "messageText": {
-            "type": "string"
-          }
-        }
-      },
       "StageBody": {
         "type": "object",
         "required": [
@@ -2886,72 +2863,6 @@
         "responses": {
           "200": {
             "description": "Reminders sent"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestResponse"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundResponse"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
-        }
-      }
-    },
-    "/api/v1/approvals/{assetType}/{assetId}/history": {
-      "get": {
-        "tags": [
-          "Approvals"
-        ],
-        "summary": "Get approval history",
-        "description": "Returns the event history for an approval.",
-        "operationId": "getApprovalHistory",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "assetType",
-            "in": "path",
-            "required": true,
-            "description": "The type of asset",
-            "schema": {
-              "type": "string",
-              "enum": [
-                "DOCU"
-              ],
-              "example": "DOCU"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/AssetId"
-          },
-          {
-            "$ref": "#/components/parameters/XRequestId"
-          },
-          {
-            "$ref": "#/components/parameters/XCorrelationId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ApprovalHistory"
-                  }
-                }
-              }
-            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
