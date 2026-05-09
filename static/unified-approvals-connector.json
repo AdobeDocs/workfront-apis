@@ -2930,6 +2930,17 @@
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
           }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
         }
       }
     },
@@ -3065,6 +3076,17 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
           }
         }
       }
