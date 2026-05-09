@@ -3,7 +3,7 @@
   "info": {
     "title": "Unified Approvals Connector",
     "version": "1.0",
-    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see.\n\n## Authentication\n\nThe connector supports one authentication method:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept Bearer token auth.\n\nFor Bearer token auth, the following Workfront context headers are also required:\n- `x-api-key` \u2014 `client_id` of the technical account generated from the Adobe Developer Console (identifies the calling integration to the API gateway)\n- `x-gw-subdomain` \u2014 Workfront customer subdomain\n- `wf-customerid` \u2014 Workfront customer ID\n- `wf-userid` \u2014 Workfront user ID\n- `wf-lane` \u2014 Workfront deployment lane (e.g. `prod`, `preview`, `devtest`)\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals` | Complex |\n| Search | `/api/v1/search/approvals` | Complex |\n| Templates | `/api/v1/templates` | Complex |",
+    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThe connector supports one authentication method:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept Bearer token auth.\n\nFor Bearer token auth, the following Workfront context headers are also required:\n- `x-api-key` \u2014 `client_id` of the technical account generated from the Adobe Developer Console (identifies the calling integration to the API gateway)\n- `x-gw-subdomain` \u2014 Workfront customer subdomain\n- `wf-customerid` \u2014 Workfront customer ID\n- `wf-userid` \u2014 Workfront user ID\n- `wf-lane` \u2014 Workfront deployment lane (e.g. `prod`, `preview`, `devtest`)\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals` | Complex |\n| Search | `/api/v1/search/approvals` | Complex |\n| Templates | `/api/v1/templates` | Complex |",
     "contact": {
       "name": "",
       "email": "",
@@ -40,6 +40,14 @@
     {
       "name": "Templates",
       "description": "Approval template CRUD"
+    },
+    {
+      "name": "Bots",
+      "description": "Retrieve Workfront bot users that are eligible to be added as reviewer participants on an approval. A bot reviewer is invoked automatically when its assigned stage becomes active."
+    },
+    {
+      "name": "Bot Reviews",
+      "description": "AI brand review results from the Bot Registry"
     }
   ],
   "components": {
@@ -1546,6 +1554,188 @@
           },
           "isEsmAsset": {
             "type": "boolean"
+          }
+        }
+      },
+      "BotReviewFieldResult": {
+        "type": "object",
+        "properties": {
+          "fieldSummary": {
+            "type": "object",
+            "properties": {
+              "totalGuidelineTraitsChecked": {
+                "type": "integer",
+                "description": "Total guideline traits evaluated."
+              },
+              "totalGuidelineTraitsPassed": {
+                "type": "integer",
+                "description": "Number of guideline traits that passed."
+              },
+              "totalCriticalGuidelineTraitsChecked": {
+                "type": "integer",
+                "description": "Total critical guideline traits evaluated."
+              },
+              "totalCriticalGuidelineTraitsPassed": {
+                "type": "integer",
+                "description": "Number of critical guideline traits that passed."
+              },
+              "totalNonCriticalGuidelineTraitsChecked": {
+                "type": "integer",
+                "description": "Total non-critical guideline traits evaluated."
+              },
+              "totalNonCriticalGuidelineTraitsPassed": {
+                "type": "integer",
+                "description": "Number of non-critical guideline traits that passed."
+              }
+            }
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuidelineCheckResult"
+            }
+          }
+        }
+      },
+      "BotReviewValidationResult": {
+        "type": "object",
+        "properties": {
+          "validationSummary": {
+            "type": "object",
+            "description": "Aggregate result across all checks for the asset (or page).",
+            "properties": {
+              "passed": {
+                "type": "boolean",
+                "description": "Whether the asset passed validation overall."
+              },
+              "imageGuidelines": {
+                "type": "object",
+                "description": "Aggregate guideline-trait counts plus an overall pass flag and score.",
+                "properties": {
+                  "totalGuidelineTraitsChecked": {
+                    "type": "integer",
+                    "description": "Total guideline traits evaluated."
+                  },
+                  "totalGuidelineTraitsPassed": {
+                    "type": "integer",
+                    "description": "Number of guideline traits that passed."
+                  },
+                  "totalCriticalGuidelineTraitsChecked": {
+                    "type": "integer",
+                    "description": "Total critical guideline traits evaluated."
+                  },
+                  "totalCriticalGuidelineTraitsPassed": {
+                    "type": "integer",
+                    "description": "Number of critical guideline traits that passed."
+                  },
+                  "totalNonCriticalGuidelineTraitsChecked": {
+                    "type": "integer",
+                    "description": "Total non-critical guideline traits evaluated."
+                  },
+                  "totalNonCriticalGuidelineTraitsPassed": {
+                    "type": "integer",
+                    "description": "Number of non-critical guideline traits that passed."
+                  },
+                  "passed": {
+                    "type": "boolean"
+                  },
+                  "score": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "fieldResults": {
+            "type": "object",
+            "description": "Per-field validation results, keyed by field name.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BotReviewFieldResult"
+            }
+          }
+        }
+      },
+      "BotReview": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique review ID."
+          },
+          "botId": {
+            "type": "string",
+            "description": "ID of the bot that produced this review."
+          },
+          "brandId": {
+            "type": "string",
+            "description": "ID of the brand associated with the bot."
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Category for this review, if any."
+          },
+          "validationTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Validation types applied to this asset."
+          },
+          "parentObjType": {
+            "type": "string",
+            "description": "Type of the parent object (e.g. `DOCU`)."
+          },
+          "parentObjId": {
+            "type": "string",
+            "description": "ID of the parent object."
+          },
+          "objType": {
+            "type": "string",
+            "description": "Type of the object reviewed (e.g. `DOCV`)."
+          },
+          "objId": {
+            "type": "string",
+            "description": "ID of the object reviewed."
+          },
+          "stageId": {
+            "type": "string",
+            "description": "ID of the approval stage this review is attached to."
+          },
+          "pdfDownloadUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Pre-signed URL to download a PDF of the review, when available."
+          },
+          "bot": {
+            "type": "string",
+            "description": "Display name of the bot at the time of review."
+          },
+          "status": {
+            "type": "string",
+            "description": "Lifecycle status of the review (e.g. completed, failed)."
+          },
+          "failureCode": {
+            "type": "string",
+            "description": "Machine-readable failure code when the review could not complete."
+          },
+          "failureMessage": {
+            "type": "string",
+            "description": "Human-readable failure message paired with `failureCode`."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validationResult": {
+            "$ref": "#/components/schemas/BotReviewValidationResult"
+          },
+          "multiPageValidationResult": {
+            "type": "object",
+            "description": "Per-page validation results for multi-page assets, keyed by page identifier. Each value follows the same shape as `validationResult`.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BotReviewValidationResult"
+            }
           }
         }
       }
@@ -3588,6 +3778,249 @@
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/Approval"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/bots": {
+      "get": {
+        "tags": [
+          "Bots"
+        ],
+        "summary": "List bot reviewers",
+        "description": "Returns a paginated list of Workfront bot users that are eligible to be added as reviewer participants on an approval. A bot reviewer is invoked automatically when its assigned stage becomes active.",
+        "operationId": "getBots",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "metadata",
+                    "results"
+                  ],
+                  "properties": {
+                    "metadata": {
+                      "type": "object",
+                      "properties": {
+                        "totalItems": {
+                          "type": "integer"
+                        },
+                        "currentPage": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        }
+                      }
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true,
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "The unique identifier for the bot"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "The name the creator gave to the bot"
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "The description of what the bot does or is used for"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "doc-brand-reviewer"
+                            ]
+                          },
+                          "isActive": {
+                            "type": "boolean",
+                            "description": "Whether the bot has been enabled"
+                          },
+                          "brandId": {
+                            "type": "string",
+                            "description": "The ID of the brand the bot is associated with"
+                          },
+                          "creatorId": {
+                            "type": "string",
+                            "description": "The ID of the user who created the bot"
+                          },
+                          "customerId": {
+                            "type": "string",
+                            "description": "The ID of the Workfront customer the bot is associated with"
+                          },
+                          "imsOrgId": {
+                            "type": "string",
+                            "description": "The IMS organization ID associated with the bot"
+                          },
+                          "eauthUserID": {
+                            "type": "string",
+                            "description": "The IMS user ID associated with the bot"
+                          },
+                          "wfUserId": {
+                            "type": "string",
+                            "description": "The Workfront user ID associated with the bot"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/bot-reviews/search": {
+      "post": {
+        "tags": [
+          "Bot Reviews"
+        ],
+        "summary": "Search AI brand reviews",
+        "description": "Returns AI brand-review results produced for a document version under an approval. Each review is generated when a bot reviewer participant runs against a stage on the approval and captures the bot\u2019s pass/fail findings against the brand\u2019s guidelines. Filter results by bot, document version, parent document, or stage to narrow the response to a specific asset, review run, or stage on its approval.",
+        "operationId": "searchBotReviews",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "botEauthUserId": {
+                    "type": "string",
+                    "description": "The Workfront eauthUserID of the bot. Maps to associatedTechnicalAccountId on the bot record."
+                  },
+                  "parentObjType": {
+                    "type": "string",
+                    "enum": [
+                      "DOCU"
+                    ],
+                    "description": "Type of the parent object."
+                  },
+                  "parentObjId": {
+                    "type": "string",
+                    "description": "ID of the parent object (the document)."
+                  },
+                  "objType": {
+                    "type": "string",
+                    "enum": [
+                      "DOCV"
+                    ],
+                    "description": "Type of the object being reviewed."
+                  },
+                  "objId": {
+                    "type": "string",
+                    "description": "ID of the object being reviewed (the document version)."
+                  },
+                  "stageId": {
+                    "type": "string",
+                    "description": "ID of the stage on the approval."
+                  },
+                  "page": {
+                    "type": "integer",
+                    "default": 1
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "reviews"
+                  ],
+                  "properties": {
+                    "reviews": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BotReview"
                       }
                     }
                   }
