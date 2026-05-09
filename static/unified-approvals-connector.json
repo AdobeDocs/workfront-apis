@@ -2916,7 +2916,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Reminders sent"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Approval"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -3063,7 +3070,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Reminders sent"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Approval"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
