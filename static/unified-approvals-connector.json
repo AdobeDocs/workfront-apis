@@ -3734,7 +3734,7 @@
           "Approvals"
         ],
         "summary": "Bulk lookup approvals by asset ID",
-        "description": "Simple bulk lookup of approvals for a known list of asset IDs within a specific asset type. Provide the asset type in the path and an array of `assetIds` in the body to retrieve their approvals in a single call. If no body is supplied, the endpoint returns approvals for projects owned by the requesting user that are currently in review.\n\nFor richer filtering (project, folder, stage, participant, deadline, status) with cursor-based pagination, use [`POST /api/v1/search/approvals`](#tag/Search/operation/searchApprovals).",
+        "description": "Simple bulk lookup of approvals for a known list of asset IDs within a specific asset type. Provide the asset type in the path and an array of `assetIds` in the body to retrieve their approvals in a single call. If no body is supplied, the endpoint returns approvals for projects owned by the requesting user that are currently in review.",
         "operationId": "bulkLookupApprovalsByAssetType",
         "security": [
           {
