@@ -3,7 +3,7 @@
   "info": {
     "title": "Unified Approvals Connector",
     "version": "1.0",
-    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThe connector supports one authentication method:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept Bearer token auth.\n\nFor Bearer token auth, the following Workfront context headers are also required:\n- `x-api-key` \u2014 `client_id` of the technical account generated from the Adobe Developer Console (identifies the calling integration to the API gateway)\n- `x-gw-subdomain` \u2014 Workfront customer subdomain\n- `wf-customerid` \u2014 Workfront customer ID\n- `wf-userid` \u2014 Workfront user ID\n- `wf-lane` \u2014 Workfront deployment lane (e.g. `prod`, `preview`, `devtest`)\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals` | Complex |\n| Search | `/api/v1/search/approvals` | Complex |\n| Templates | `/api/v1/templates` | Complex |",
+    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThe connector supports one authentication method:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept Bearer token auth.\n\nFor Bearer token auth, the following Workfront context headers are also required:\n- `x-api-key` \u2014 `client_id` of the technical account generated from the Adobe Developer Console (identifies the calling integration to the API gateway)\n- `x-gw-subdomain` \u2014 Workfront customer subdomain\n- `wf-customerid` \u2014 Workfront customer ID\n- `wf-userid` \u2014 Workfront user ID\n- `wf-lane` \u2014 Workfront deployment lane (e.g. `prod`, `preview`, `devtest`)\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals` | Complex |\n| Templates | `/api/v1/templates` | Complex |",
     "contact": {
       "name": "",
       "email": "",
@@ -32,10 +32,6 @@
     {
       "name": "Participants",
       "description": "Add, remove, and remind participants"
-    },
-    {
-      "name": "Search",
-      "description": "Find approvals across all of Workfront that the requesting user has view access to. By default the search returns every visible approval and the optional filters (project, folder, asset, stage, participant, status, dates, overdue) narrow the result set to the desired subset. Results are cursor-paginated."
     },
     {
       "name": "Templates",
@@ -3489,283 +3485,6 @@
         }
       }
     },
-    "/api/v1/search/approvals": {
-      "post": {
-        "tags": [
-          "Search"
-        ],
-        "summary": "Search approvals (full-featured)",
-        "description": "Full-featured, permission-aware approval search with rich filtering, cursor-based pagination, and Redrock integration. Filter by project, folder, asset type/ID, creator, dates, status, stage, participant, and overdue state. The shape of each result is governed by the requested `view`.\n\nFor a simpler bulk lookup of approvals by a known list of asset IDs within a single asset type, use [`POST /api/v1/approvals/search/{assetType}`](#tag/Approvals/operation/bulkLookupApprovalsByAssetType).",
-        "operationId": "searchApprovals",
-        "security": [
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/XRequestId"
-          },
-          {
-            "$ref": "#/components/parameters/XCorrelationId"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "projectId": {
-                    "description": "Workfront project ID, or array of IDs",
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "folderId": {
-                    "description": "Workfront folder ID, or array of IDs. Use `null` to match the project root folder.",
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "nullable": true
-                        }
-                      }
-                    ]
-                  },
-                  "assetType": {
-                    "description": "Asset type, or array of asset types",
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "assetId": {
-                    "description": "Asset ID, or array of asset IDs",
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "approvalStatus": {
-                    "type": "string",
-                    "enum": [
-                      "in review",
-                      "pending review",
-                      "approved",
-                      "approved with changes",
-                      "needs work",
-                      "reviewed",
-                      "withdrawn"
-                    ],
-                    "description": "Filter by overall approval lifecycle status. Matches the values returned in `Approval.status`.\n\n- `in review` \u2014 At least one stage is active and waiting for decisions.\n- `pending review` \u2014 Approval exists but no stage has been activated yet.\n- `approved` \u2014 All required participants have approved.\n- `approved with changes` \u2014 All required participants have decided; at least one with changes.\n- `needs work` \u2014 At least one required participant has returned needs work.\n- `reviewed` \u2014 All reviewer-role participants have reviewed (no approver decisions required).\n- `withdrawn` \u2014 The approval has been retracted; no further actions are possible."
-                  },
-                  "creatorId": {
-                    "type": "string"
-                  },
-                  "createdDateFrom": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "createdDateTo": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "productId": {
-                    "type": "string",
-                    "enum": [
-                      "workfront"
-                    ],
-                    "default": "workfront",
-                    "example": "workfront",
-                    "description": "Identifier of the Workfront product the approval is associated with. Always `workfront` for the Unified Approvals Connector."
-                  },
-                  "stageStatus": {
-                    "description": "Filter by stage lifecycle status. Pass a single value or an array. Matches the values returned in `ApprovalStage.status`.\n\n- `not started` \u2014 Stage has not yet been triggered to `isActive`. Set on creation and remains until the stage's activation trigger fires (typically when its parent stages complete).\n- `pending review` \u2014 Stage is active and awaiting participant decisions.\n- `in review` \u2014 Stage is active and at least one participant has not yet decided.\n- `approved` \u2014 All required participants on this stage have approved.\n- `approved with changes` \u2014 All required participants have decided, at least one has chosen `approved with changes`, and the rest have chosen `approved` or `approved with changes`. If any required participant has returned `needs work`, the stage rolls up to `needs work` instead.\n- `needs work` \u2014 At least one required participant has responded with `needs work`. `needs work` outranks `approved` and `approved with changes`, so the stage rolls up to this status whenever any required participant has returned `needs work`.\n- `reviewed` \u2014 All reviewer participants have reviewed.",
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "enum": [
-                          "not started",
-                          "pending review",
-                          "in review",
-                          "approved",
-                          "approved with changes",
-                          "needs work",
-                          "reviewed"
-                        ]
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "enum": [
-                            "not started",
-                            "pending review",
-                            "in review",
-                            "approved",
-                            "approved with changes",
-                            "needs work",
-                            "reviewed"
-                          ]
-                        }
-                      }
-                    ]
-                  },
-                  "stageDeadlineDateFrom": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "stageDeadlineDateTo": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "participantType": {
-                    "type": "string",
-                    "enum": [
-                      "USER",
-                      "TEAMOB"
-                    ],
-                    "description": "Filter by participant type.\n\n- `USER` \u2014 Individual Workfront user (or AI bot user).\n- `TEAMOB` \u2014 Workfront team."
-                  },
-                  "participantId": {
-                    "type": "string"
-                  },
-                  "participantRole": {
-                    "type": "string",
-                    "enum": [
-                      "approver",
-                      "reviewer"
-                    ],
-                    "description": "Role this participant plays on the stage.\n\n- `approver` \u2014 Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` \u2014 Non-binding; can mark reviewed but does not block approval progression.\n\nThe role, combined with the participant's current decision, also drives the `userInfo.action` value on every approval response \u2014 see [`Approval.userInfo.action`](#section/Schemas/Approval) for the role/decision \u2192 action mapping."
-                  },
-                  "participantStatus": {
-                    "description": "Filter by participant lifecycle status. Pass a single value or an array. Matches the values returned in `ApprovalStageParticipant.status`.\n\n- `notified` \u2014 Participant has been sent a notification but has not yet opened or decided.\n- `opened` \u2014 Participant has opened the review but has not yet decided.\n- `commented` \u2014 Participant has left a comment but has not made a final decision.\n- `approved` \u2014 Participant has approved.\n- `approved with changes` \u2014 Participant has approved with changes requested.\n- `needs work` \u2014 Participant returned needs work.\n- `reviewed` \u2014 Participant has marked the review complete (reviewer role only).",
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "enum": [
-                          "notified",
-                          "opened",
-                          "commented",
-                          "approved",
-                          "approved with changes",
-                          "needs work",
-                          "reviewed"
-                        ]
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "enum": [
-                            "notified",
-                            "opened",
-                            "commented",
-                            "approved",
-                            "approved with changes",
-                            "needs work",
-                            "reviewed"
-                          ]
-                        }
-                      }
-                    ]
-                  },
-                  "overdue": {
-                    "type": "boolean",
-                    "description": "When true, restricts to stages whose deadline has passed."
-                  },
-                  "view": {
-                    "type": "string",
-                    "enum": [
-                      "full",
-                      "personalApprovals",
-                      "participants"
-                    ],
-                    "default": "full",
-                    "description": "Result projection. Determines which fields are returned per result and the overall shape of the `data` array.\n\n- `full` (default) \u2014 returns complete approval objects, including stages, participants, and all metadata.\n- `personalApprovals` \u2014 returns approvals scoped to the requesting user's personal queue.\n- `participants` \u2014 returns participant-centric results; each item is shaped as `{ participantId, status }` rather than a full approval object."
-                  },
-                  "cursor": {
-                    "type": "string",
-                    "nullable": true,
-                    "description": "Pagination cursor returned from a previous call."
-                  },
-                  "limit": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100,
-                    "default": 20
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "description": "Matching approvals. Shape depends on the requested view.",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": true
-                      }
-                    },
-                    "cursor": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "Cursor for the next page, or null when no more results."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestResponse"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
-        }
-      }
-    },
     "/api/v1/bots": {
       "get": {
         "tags": [
@@ -3990,6 +3709,87 @@
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/BotReview"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/search/{assetType}": {
+      "post": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Bulk lookup approvals by asset ID",
+        "description": "Simple bulk lookup of approvals for a known list of asset IDs within a specific asset type. Provide the asset type in the path and an array of `assetIds` in the body to retrieve their approvals in a single call. If no body is supplied, the endpoint returns approvals for projects owned by the requesting user that are currently in review.\n\nFor richer filtering (project, folder, stage, participant, deadline, status) with cursor-based pagination, use [`POST /api/v1/search/approvals`](#tag/Search/operation/searchApprovals).",
+        "operationId": "bulkLookupApprovalsByAssetType",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "assetIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Asset IDs to look up approvals for."
+                  },
+                  "assetType": {
+                    "type": "string",
+                    "description": "Optional. Asset type in the body. The path-level `assetType` is authoritative.",
+                    "enum": [
+                      "DOCV"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "approvals": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Approval"
                       }
                     }
                   }
