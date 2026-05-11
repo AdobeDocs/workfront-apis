@@ -3017,9 +3017,6 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "participantId"
-                ],
                 "properties": {
                   "participantId": {
                     "type": "string",
