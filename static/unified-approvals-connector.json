@@ -1876,6 +1876,47 @@
             "description": "Stage dependency graph for this path"
           }
         }
+      },
+      "PartialApproval": {
+        "type": "object",
+        "description": "Returned by GET approval when no approval exists for the asset yet. Contains only the contextual fields that can be computed without an approval record.",
+        "properties": {
+          "isApprovalActive": {
+            "type": "boolean",
+            "description": "Always `true` in this partial shape \u2014 no active approval exists but the asset is eligible."
+          },
+          "isEsmAsset": {
+            "type": "boolean",
+            "description": "Whether the asset is stored in external storage (ESM)."
+          },
+          "frameSyncStatus": {
+            "type": "string",
+            "nullable": true,
+            "description": "Frame sync status for the asset. `null` when no approval exists."
+          },
+          "userInfo": {
+            "type": "object",
+            "properties": {
+              "isEditable": {
+                "type": "boolean",
+                "description": "Whether the requesting user can create or modify an approval for this asset."
+              },
+              "hasLicenseAccess": {
+                "type": "boolean",
+                "description": "Whether the requesting user's license tier grants edit access."
+              }
+            }
+          }
+        },
+        "example": {
+          "isApprovalActive": true,
+          "isEsmAsset": false,
+          "frameSyncStatus": null,
+          "userInfo": {
+            "isEditable": true,
+            "hasLicenseAccess": true
+          }
+        }
       }
     },
     "responses": {
@@ -1941,7 +1982,7 @@
           "Approvals"
         ],
         "summary": "Get approval",
-        "description": "Get approval details for an asset.",
+        "description": "Get approval details for an asset. Returns the full `Approval` object when an approval exists. When no approval has been created for the asset yet, returns a partial response containing only `isApprovalActive`, `isEsmAsset`, `frameSyncStatus`, and `userInfo`.",
         "operationId": "getApproval",
         "security": [
           {
@@ -1979,7 +2020,24 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/ApprovalResponse"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Approval"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PartialApproval"
+                    }
+                  ],
+                  "discriminator": {
+                    "propertyName": "approvalGuid"
+                  }
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
