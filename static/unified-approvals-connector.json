@@ -291,6 +291,20 @@
             "nullable": true,
             "description": "Whether the Frame.io asset sync is complete"
           },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStage"
+            },
+            "description": "Ordered list of stages on this approval."
+          },
+          "structure": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStructure"
+            },
+            "description": "Stage dependency graph. Each entry maps a `stageId` to its `parentIds`, defining the order in which stages activate."
+          },
           "userInfo": {
             "type": "object",
             "description": "Contextual information about the authenticated user's relationship to this approval",
@@ -341,13 +355,6 @@
                 "nullable": true
               }
             }
-          },
-          "paths": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApprovalPath"
-            },
-            "description": "Parallel paths in this approval. Present only when the approval was created with `paths`. Each path contains its own stages and structure."
           }
         },
         "example": {
