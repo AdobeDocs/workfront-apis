@@ -4077,7 +4077,7 @@
           "Templates"
         ],
         "summary": "Bulk delete templates",
-        "description": "Deletes multiple approval templates in one call. IDs are comma-separated in the path. Requires template management permissions.\n\n> **Known issue:** When none of the supplied IDs exist, the service currently returns HTTP 500 instead of `200 {\"acknowledged\":true,\"deletedCount\":0}`.",
+        "description": "Deletes multiple approval templates in one call. IDs are comma-separated in the path. Requires template management permissions.",
         "operationId": "bulkDeleteTemplates",
         "security": [
           {
@@ -4146,7 +4146,7 @@
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+            "description": "Internal Server Error. Also returned when none of the supplied IDs exist or are recognised \u2014 the service does not treat unrecognised IDs as a no-op in this case."
           }
         }
       }
