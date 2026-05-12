@@ -3215,7 +3215,12 @@
                             "type": "string"
                           },
                           "participantType": {
-                            "type": "string"
+                            "type": "string",
+                            "enum": [
+                              "USER",
+                              "TEAMOB"
+                            ],
+                            "description": "Type of participant.\n\n- `USER` \u2014 Individual Workfront user (or AI bot user).\n- `TEAMOB` \u2014 Workfront team."
                           },
                           "participantRole": {
                             "type": "string",
