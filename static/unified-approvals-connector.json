@@ -4466,13 +4466,11 @@
                       "DOCV"
                     ]
                   }
-                },
-                "required": [
-                  "assetIds"
-                ]
+                }
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
@@ -4502,16 +4500,20 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/BadRequestResponse"
+            "description": "Bad Request. Returned for validation errors, or when the request body is an empty object (`{}`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
-          },
-          "411": {
-            "$ref": "#/components/responses/LengthRequiredResponse"
           }
         }
       }
