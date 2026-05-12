@@ -1995,7 +1995,14 @@
         }
       },
       "LengthRequiredResponse": {
-        "description": "Length Required \u2014 the service requires a `Content-Length` header. Send an empty JSON object (`{}`) as the request body."
+        "description": "Length Required \u2014 the service requires a `Content-Length` header. Send an empty JSON object (`{}`) as the request body.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
       }
     }
   },
@@ -3949,7 +3956,14 @@
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
-            "description": "Internal Server Error. Also returned when the template ID does not exist \u2014 the service currently returns 500 instead of 404 for unrecognized IDs."
+            "description": "Internal Server Error. Also returned when the template ID does not exist \u2014 the service currently returns 500 instead of 404 for unrecognized IDs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -4228,7 +4242,14 @@
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "500": {
-            "description": "Internal Server Error. Also returned when none of the supplied IDs exist or are recognized \u2014 the service does not treat unrecognized IDs as a no-op in this case."
+            "description": "Internal Server Error. Also returned when none of the supplied IDs exist or are recognized \u2014 the service does not treat unrecognized IDs as a no-op in this case.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -4505,7 +4526,14 @@
             "$ref": "#/components/responses/InternalServerErrorResponse"
           },
           "403": {
-            "description": "Forbidden \u2014 returned when none of `objId`, `parentObjId`, or `botEauthUserId` are provided in the request body."
+            "description": "Forbidden \u2014 returned when none of `objId`, `parentObjId`, or `botEauthUserId` are provided in the request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
