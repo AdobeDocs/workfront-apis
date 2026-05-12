@@ -1941,6 +1941,21 @@
           "assetId": "69b1ea8500006ebab6a5eb8e622d4b09",
           "frameSyncStatus": null
         }
+      },
+      "TemplateDeleteResult": {
+        "type": "object",
+        "properties": {
+          "acknowledged": {
+            "type": "boolean",
+            "description": "Whether the delete operation was acknowledged by the database.",
+            "example": true
+          },
+          "deleteCount": {
+            "type": "integer",
+            "description": "Number of templates deleted. `0` when the template ID was not found; `1` when successfully deleted.",
+            "example": 1
+          }
+        }
       }
     },
     "responses": {
@@ -4145,14 +4160,18 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "Template deleted. No content."
+          "200": {
+            "description": "Delete operation acknowledged. Check `deleteCount` to determine whether the template existed: `1` means deleted, `0` means no template with that ID was found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDeleteResult"
+                }
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
