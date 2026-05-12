@@ -147,6 +147,58 @@
         "schema": {
           "type": "string"
         }
+      },
+      "XApiKey": {
+        "name": "x-api-key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "`client_id` of the Adobe Developer Console technical account. Identifies the calling integration to the AIO gateway."
+      },
+      "XGwSubdomain": {
+        "name": "x-gw-subdomain",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Workfront customer subdomain (e.g. `mycompany`)."
+      },
+      "WfCustomerId": {
+        "name": "wf-customerid",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Workfront customer ID."
+      },
+      "WfUserId": {
+        "name": "wf-userid",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Workfront user ID of the acting user."
+      },
+      "WfLane": {
+        "name": "wf-lane",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "prod",
+            "preview",
+            "hub",
+            "staging",
+            "devtest"
+          ]
+        },
+        "description": "Workfront deployment lane."
       }
     },
     "schemas": {
@@ -1903,6 +1955,21 @@
             "$ref": "#/components/parameters/AssetId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -1945,6 +2012,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -2033,6 +2115,21 @@
             "$ref": "#/components/parameters/AssetId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2077,6 +2174,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -2152,6 +2264,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -2244,6 +2371,21 @@
             "$ref": "#/components/parameters/AssetId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2331,6 +2473,21 @@
             "$ref": "#/components/parameters/StageId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2388,6 +2545,21 @@
             "$ref": "#/components/parameters/StageId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2435,6 +2607,21 @@
           },
           {
             "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -2501,6 +2688,21 @@
             "$ref": "#/components/parameters/StageId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2560,6 +2762,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -2635,6 +2852,21 @@
             "$ref": "#/components/parameters/AssetId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2682,6 +2914,21 @@
           },
           {
             "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -2753,6 +3000,21 @@
             "$ref": "#/components/parameters/StageId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2797,6 +3059,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -2877,6 +3154,21 @@
             "$ref": "#/components/parameters/AssetId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2942,6 +3234,21 @@
             "$ref": "#/components/parameters/ParticipantId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -3003,6 +3310,21 @@
           },
           {
             "$ref": "#/components/parameters/ParticipantId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -3096,6 +3418,21 @@
             "$ref": "#/components/parameters/AssetId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -3168,6 +3505,21 @@
           },
           {
             "$ref": "#/components/parameters/ParticipantId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -3261,6 +3613,21 @@
             "$ref": "#/components/parameters/StageId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -3323,6 +3690,21 @@
         ],
         "parameters": [
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -3372,6 +3754,21 @@
           }
         ],
         "parameters": [
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
           {
             "$ref": "#/components/parameters/XRequestId"
           },
@@ -3430,6 +3827,21 @@
             "$ref": "#/components/parameters/TemplateId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -3473,6 +3885,21 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/TemplateId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -3533,6 +3960,21 @@
             "$ref": "#/components/parameters/TemplateId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -3591,6 +4033,21 @@
             "$ref": "#/components/parameters/TemplateId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -3636,6 +4093,21 @@
               "type": "string",
               "example": "templateId1,templateId2,templateId3"
             }
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -3709,6 +4181,21 @@
               "minimum": 1,
               "maximum": 100
             }
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -3830,6 +4317,21 @@
         ],
         "parameters": [
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -3937,6 +4439,21 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
