@@ -4347,7 +4347,7 @@
                 "properties": {
                   "botEauthUserId": {
                     "type": "string",
-                    "description": "The Workfront eauthUserID of the bot. Maps to associatedTechnicalAccountId on the bot record."
+                    "description": "The Workfront eauthUserID of the bot. Maps to associatedTechnicalAccountId on the bot record. Required if `objId` and `parentObjId` are not provided."
                   },
                   "parentObjType": {
                     "type": "string",
@@ -4358,7 +4358,7 @@
                   },
                   "parentObjId": {
                     "type": "string",
-                    "description": "ID of the parent object (the document)."
+                    "description": "ID of the parent object (the document). Required if `objId` and `botEauthUserId` are not provided."
                   },
                   "objType": {
                     "type": "string",
@@ -4369,7 +4369,7 @@
                   },
                   "objId": {
                     "type": "string",
-                    "description": "ID of the object being reviewed (the document version)."
+                    "description": "ID of the object being reviewed (the document version). Required if `parentObjId` and `botEauthUserId` are not provided."
                   },
                   "stageId": {
                     "type": "string",
@@ -4385,7 +4385,8 @@
                     "minimum": 1,
                     "maximum": 100
                   }
-                }
+                },
+                "description": "At least one of `objId`, `parentObjId`, or `botEauthUserId` must be provided. Omitting all three will result in a 403 response."
               }
             }
           }
@@ -4420,6 +4421,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "403": {
+            "description": "Forbidden \u2014 returned when none of `objId`, `parentObjId`, or `botEauthUserId` are provided in the request body."
           }
         }
       }
