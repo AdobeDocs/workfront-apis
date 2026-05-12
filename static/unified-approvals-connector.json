@@ -164,7 +164,7 @@
         "schema": {
           "type": "string"
         },
-        "description": "Workfront customer subdomain (e.g. `mycompany`)."
+        "description": "Workfront customer subdomain (e.g. `mycompany`). Must match the subdomain of the Workfront instance being accessed. Passing an incorrect or unrecognized subdomain will result in a `502 Bad Gateway` response from the AIO gateway."
       },
       "WfCustomerId": {
         "name": "wf-customerid",
