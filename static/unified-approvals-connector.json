@@ -4624,8 +4624,7 @@
                 ]
               }
             }
-          },
-          "description": "Send an empty JSON object at minimum. The service returns HTTP 411 if no body is provided."
+          }
         },
         "responses": {
           "200": {
