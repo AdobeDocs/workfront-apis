@@ -4025,28 +4025,7 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "acknowledged": {
-                      "type": "boolean",
-                      "description": "Whether MongoDB acknowledged the bulk-delete operation."
-                    },
-                    "deletedCount": {
-                      "type": "integer",
-                      "description": "Number of templates actually deleted."
-                    }
-                  },
-                  "example": {
-                    "acknowledged": true,
-                    "deletedCount": 2
-                  }
-                }
-              }
-            }
+            "description": "Template deleted successfully."
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
