@@ -4118,7 +4118,7 @@
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "500": {
-            "description": "Internal Server Error. Also returned when none of the supplied IDs exist or are recognized \u2014 the service does not treat unrecognized IDs as a no-op in this case."
+            "description": "Returned when one or more supplied IDs are not valid MongoDB ObjectId format strings. Valid-format IDs that do not match any template return 200 with deletedCount: 0."
           }
         }
       }
