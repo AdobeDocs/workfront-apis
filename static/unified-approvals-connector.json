@@ -4025,11 +4025,25 @@
         ],
         "responses": {
           "200": {
-            "description": "Delete operation acknowledged. Check `deleteCount` to determine whether the template existed: `1` means deleted, `0` means no template with that ID was found.",
+            "description": "OK",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/TemplateDeleteResult"
+                  "type": "object",
+                  "properties": {
+                    "acknowledged": {
+                      "type": "boolean",
+                      "description": "Whether MongoDB acknowledged the bulk-delete operation."
+                    },
+                    "deletedCount": {
+                      "type": "integer",
+                      "description": "Number of templates actually deleted."
+                    }
+                  },
+                  "example": {
+                    "acknowledged": true,
+                    "deletedCount": 2
+                  }
                 }
               }
             }
@@ -4091,25 +4105,11 @@
         ],
         "responses": {
           "200": {
-            "description": "OK",
+            "description": "Delete operation acknowledged. Check `deleteCount` to determine whether the template existed: `1` means deleted, `0` means no template with that ID was found.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "acknowledged": {
-                      "type": "boolean",
-                      "description": "Whether MongoDB acknowledged the bulk-delete operation."
-                    },
-                    "deletedCount": {
-                      "type": "integer",
-                      "description": "Number of templates actually deleted."
-                    }
-                  },
-                  "example": {
-                    "acknowledged": true,
-                    "deletedCount": 2
-                  }
+                  "$ref": "#/components/schemas/TemplateDeleteResult"
                 }
               }
             }
