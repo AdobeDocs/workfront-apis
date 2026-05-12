@@ -2169,27 +2169,10 @@
                   "templateId": {
                     "type": "string",
                     "description": "ID of the template used to create this approval, if any. Recorded on the approval for traceability and used to increment the template's `usageCount` and refresh `lastUsedOnDate`. The server does **not** load stages from the template \u2014 the caller must fetch the template via `GET /api/v1/templates/{templateId}` and copy its stages into the `stages` array."
-                  },
-                  "paths": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Parallel paths for the approval. Either `stages` or `paths` must be provided, not both. When `paths` is used, each path groups its own stages; `stages` should be omitted.",
-                    "items": {
-                      "$ref": "#/components/schemas/ApprovalPathCreate"
-                    }
                   }
                 },
-                "anyOf": [
-                  {
-                    "required": [
-                      "stages"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "paths"
-                    ]
-                  }
+                "required": [
+                  "stages"
                 ]
               }
             }
@@ -2414,39 +2397,16 @@
                     "type": "array",
                     "minItems": 1,
                     "items": {
-                      "$ref": "#/components/schemas/StageBody",
-                      "properties": {
-                        "pathId": {
-                          "type": "string",
-                          "description": "Path this stage belongs to"
-                        }
-                      }
+                      "$ref": "#/components/schemas/StageBody"
                     }
                   },
                   "templateId": {
                     "type": "string",
                     "description": "ID of the template used to create this approval, if any."
-                  },
-                  "paths": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Parallel paths to add. Either `stages` or `paths` must be provided.",
-                    "items": {
-                      "$ref": "#/components/schemas/ApprovalPathCreate"
-                    }
                   }
                 },
-                "anyOf": [
-                  {
-                    "required": [
-                      "stages"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "paths"
-                    ]
-                  }
+                "required": [
+                  "stages"
                 ]
               }
             }
