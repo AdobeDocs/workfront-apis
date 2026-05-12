@@ -978,6 +978,11 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "timeframe": {
+            "type": "integer",
+            "deprecated": true,
+            "description": "**Deprecated.** Use `timeframeEstimate` instead. Previously used to store the expected duration of the approval in days."
           }
         },
         "example": {
