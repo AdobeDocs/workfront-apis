@@ -3816,7 +3816,7 @@
           "Templates"
         ],
         "summary": "Get template",
-        "description": "Returns a single approval template by ID.\n\n> **Known issue:** When the template ID does not exist, the service currently returns HTTP 500 instead of 404.",
+        "description": "Returns a single approval template by ID.",
         "operationId": "getTemplate",
         "security": [
           {
@@ -3867,7 +3867,7 @@
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+            "description": "Internal Server Error. Also returned when the template ID does not exist \u2014 the service currently returns 500 instead of 404 for unrecognised IDs."
           }
         }
       },
