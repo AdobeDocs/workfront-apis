@@ -3,7 +3,7 @@
   "info": {
     "title": "Unified Approvals Connector",
     "version": "1.0",
-    "description": "The Unified Approvals Connector is a Fastify service that bridges Workfront (Redrock) and the Unified Approvals system. It manages document-version approvals, multi-stage workflows, participant management, template CRUD, and decision-making.\n\n## Authentication\n\nThe connector supports three authentication methods:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **WorkfrontAuthCookie** | `wf-auth` cookie | Browser-based Workfront sessions |\n| **WorkfrontAuthHeader** | `wf-auth` header | Server-to-server calls from Workfront services |\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept any of the three auth methods.\n\nFor Bearer token auth, the following Workfront context headers are also required:\n- `wf-subdomain` or `x-gw-subdomain` — customer Workfront subdomain\n- `wf-customerid` — Workfront customer ID\n- `wf-userid` — Workfront user ID\n- `wf-lane` — Workfront deployment lane (e.g. `prod`, `devtest`)\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals/` | Complex |\n| Templates | `/api/v1/templates/` | Complex |\n| Search | `/api/v1/search/` | Complex |\n| Bots | `/api/v1/bots/` | Complex |",
+    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThe connector supports one authentication method:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept Bearer token auth.\n\n> **Note on auth error codes:** The AIO gateway performs credential pre-flight before routing to the service.\n> \n> | Condition | HTTP status | `error_code` |\n> |-----------|-------------|---------------|\n> | `Authorization` header absent | 403 | `403010` \u2014 \"Oauth token is missing.\" |\n> | `x-api-key` header absent (valid Bearer present) | 403 | `403000` \u2014 \"Api Key is missing.\" |\n> | Token present but invalid or expired | 401 | `401013` |\n> \n> The first two cases are caught by the gateway and never reach the service. The 401 case is handled by the service itself.\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals` | Complex |\n| Templates | `/api/v1/templates` | Complex |\n| Bots | `/api/v1/bots` | Complex |\n| Bot Reviews | `/api/v1/bot-reviews` | Complex |\n",
     "contact": {
       "name": "",
       "email": "",
@@ -38,33 +38,21 @@
       "description": "Approval template CRUD"
     },
     {
-      "name": "Search",
-      "description": "Search approvals with filters"
+      "name": "Bots",
+      "description": "Retrieve Workfront bot users that are eligible to be added as reviewer participants on an approval. A bot reviewer is invoked automatically when its assigned stage becomes active."
     },
     {
-      "name": "Bots",
-      "description": "Bot account management"
+      "name": "Bot Reviews",
+      "description": "AI brand review results from the Bot Registry"
     }
   ],
   "components": {
     "securitySchemes": {
-      "WorkfrontAuthCookie": {
-        "type": "apiKey",
-        "in": "cookie",
-        "name": "wf-auth",
-        "description": "Workfront auth JWT issued as a session cookie"
-      },
-      "WorkfrontAuthHeader": {
-        "type": "apiKey",
-        "in": "header",
-        "name": "wf-auth",
-        "description": "Workfront auth JWT passed as a request header"
-      },
       "Bearer": {
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "IMS Bearer token from Adobe IO / Developer Console. When used, the following context headers are also required: `wf-subdomain` (or `x-gw-subdomain`), `wf-customerid`, `wf-userid`, `wf-lane`."
+        "description": "IMS Bearer token from Adobe IO / Developer Console."
       }
     },
     "parameters": {
@@ -155,10 +143,62 @@
         "name": "x-correlation-id",
         "in": "header",
         "required": false,
-        "description": "Unique identifier for correlation across multiple service calls.",
+        "description": "Unique identifier for correlation across multiple service calls. Auto-generated if not provided.",
         "schema": {
           "type": "string"
         }
+      },
+      "XApiKey": {
+        "name": "x-api-key",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "`client_id` of the Adobe Developer Console technical account. Identifies the calling integration to the AIO gateway."
+      },
+      "XGwSubdomain": {
+        "name": "x-gw-subdomain",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Workfront customer subdomain (e.g. `mycompany`). Must match the subdomain of the Workfront instance being accessed. Passing an incorrect or unrecognized subdomain will result in a `502 Bad Gateway` response from the AIO gateway."
+      },
+      "WfCustomerId": {
+        "name": "wf-customerid",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Workfront customer ID."
+      },
+      "WfUserId": {
+        "name": "wf-userid",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string"
+        },
+        "description": "Workfront user ID of the acting user."
+      },
+      "WfLane": {
+        "name": "wf-lane",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "prod",
+            "preview",
+            "hub",
+            "staging",
+            "devtest"
+          ]
+        },
+        "description": "Workfront deployment lane."
       }
     },
     "schemas": {
@@ -174,14 +214,18 @@
             "type": "string"
           },
           "assetType": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "DOCV"
+            ]
           },
           "creatorId": {
             "type": "string"
           },
           "realCreatorId": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "ID of the proxy user who actually created the approval. When the approval is created on behalf of another user (e.g. via a technical account or another proxying integration), this is the ID of the actual user making the call (the technical-account / proxy user). The companion `creatorId` field still reflects the user the action is attributed to. When no proxying takes place, this matches the companion field."
           },
           "customerDomain": {
             "type": "string"
@@ -191,23 +235,37 @@
           },
           "templateId": {
             "type": "string",
-            "description": "ID of the template used to create this approval, if any"
+            "description": "ID of the template used to create this approval, if any."
           },
           "productId": {
-            "type": "string"
-          },
-          "imsOrgId": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "workfront"
+            ],
+            "default": "workfront",
+            "example": "workfront",
+            "description": "Identifier of the Workfront product the approval is associated with. Always `workfront` for the Unified Approvals Connector."
           },
           "status": {
             "type": "string",
-            "description": "Overall approval status (e.g. 'pending', 'in review', 'approved', 'needs work')"
+            "enum": [
+              "in review",
+              "pending review",
+              "approved",
+              "approved with changes",
+              "needs work",
+              "reviewed",
+              "withdrawn"
+            ],
+            "description": "Overall lifecycle status of the approval, derived from the rolled-up stage and participant decisions.\n\n- `in review` \u2014 At least one stage is active and waiting for decisions.\n- `pending review` \u2014 Approval exists but no stage has been activated yet.\n- `approved` \u2014 All required participants have approved.\n- `approved with changes` \u2014 All required participants have decided; at least one with changes.\n- `needs work` \u2014 At least one required participant has returned needs work.\n- `reviewed` \u2014 All reviewer-role participants have reviewed (no approver decisions required).\n- `withdrawn` \u2014 The approval has been retracted; no further actions are possible."
           },
           "isLocked": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the approval is currently locked. Mirrors the lock state of the active stage (a stage being manually locked sets the approval inactive)."
           },
           "isLockOverridden": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Whether the approval lock was overridden by an admin."
           },
           "decisionDate": {
             "type": "string",
@@ -224,21 +282,9 @@
             "format": "date-time",
             "nullable": true
           },
-          "stages": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApprovalStage"
-            }
-          },
-          "structure": {
-            "type": "array",
-            "description": "DAG structure defining stage ordering and trigger dependencies",
-            "items": {
-              "$ref": "#/components/schemas/ApprovalStructure"
-            }
-          },
           "isApprovalActive": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Computed flag that indicates whether the version being accessed is still the document's active (head) version. Compares the document's `currentVersionID` against the `assetId` of the requested version: when they match, the version is current and `isApprovalActive` is `true`; when the document has been superseded by a newer upload, it is `false`."
           },
           "isEsmAsset": {
             "type": "boolean",
@@ -249,26 +295,56 @@
             "nullable": true,
             "description": "Whether the Frame.io asset sync is complete"
           },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStage"
+            },
+            "description": "Ordered list of stages on this approval."
+          },
+          "structure": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStructure"
+            },
+            "description": "Stage dependency graph. Each entry maps a `stageId` to its `parentIds`, defining the order in which stages activate."
+          },
           "userInfo": {
             "type": "object",
             "description": "Contextual information about the authenticated user's relationship to this approval",
             "properties": {
               "isEditable": {
                 "type": "boolean",
-                "nullable": true
+                "nullable": true,
+                "description": "Whether the requesting user can make changes to this approval. Computed per request as `canEdit AND isActive AND hasLicenseAccess` \u2014 the user must have edit permission on the underlying asset, the approval must be in an active state, and the user must have a Workfront license tier that grants edit access. Used by write-path middleware to gate mutating requests and surfaced on every approval response so consumers can mirror the same gate in the UI."
               },
               "hasLicenseAccess": {
                 "type": "boolean",
-                "nullable": true
+                "nullable": true,
+                "description": "Whether the requesting user's Workfront license tier grants the access needed to edit this approval. One of the inputs to `isEditable`."
               },
               "activeDecision": {
                 "type": "string",
                 "nullable": true,
-                "description": "The current user's most recent decision"
+                "description": "The current user's most recent decision",
+                "enum": [
+                  "approved",
+                  "needs work",
+                  "approved with changes",
+                  "reviewed",
+                  null
+                ]
               },
               "action": {
                 "type": "string",
-                "nullable": true
+                "nullable": true,
+                "enum": [
+                  "approve",
+                  "review",
+                  "revoke",
+                  null
+                ],
+                "description": "The next decision-related action the requesting user can take on this approval, derived from the user's `participantRole` and current `activeDecision`. Frontends typically render this as a button label.\n\n| Role / Decision | `userInfo.action` |\n|---|---|\n| `approver` (no decision yet) | `approve` |\n| `reviewer` (no decision yet) | `review` |\n| Decision = `approved` | `revoke` |\n| Decision = `needs work` | `approve` |\n| Decision = `reviewed` | `review` |"
               },
               "availableDecisions": {
                 "type": "object",
@@ -291,10 +367,8 @@
           "assetType": "DOCV",
           "creatorId": "15401B8A66C8F9CB0A49423C@13cc192466c8c9a949410f.e",
           "customerDomain": "mycompany",
-          "imsOrgId": "1269195F66C8C84F0A494025@AdobeOrg",
           "status": "in review",
           "isLocked": false,
-          "isLockOverridden": false,
           "isApprovalActive": true,
           "isEsmAsset": true,
           "createdAt": "2024-11-25T22:48:13.598Z",
@@ -344,13 +418,25 @@
         "type": "object",
         "properties": {
           "stageId": {
-            "type": "string"
+            "type": "string",
+            "example": "design-review",
+            "description": "Identifier for this stage. Must be unique across all stages on the approval. Can be a short, human-readable slug (e.g. `design-review`)."
           },
           "name": {
             "type": "string"
           },
           "status": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "not started",
+              "pending review",
+              "in review",
+              "approved",
+              "approved with changes",
+              "needs work",
+              "reviewed"
+            ],
+            "description": "Lifecycle status of the stage.\n\n- `not started` \u2014 Stage has not yet been triggered to `isActive`. Set on creation and remains until the stage's activation trigger fires (typically when its parent stages complete).\n- `pending review` \u2014 Stage is active and awaiting participant decisions.\n- `in review` \u2014 Stage is active and at least one participant has not yet decided.\n- `approved` \u2014 All required participants on this stage have approved.\n- `approved with changes` \u2014 All required participants have decided, at least one has chosen `approved with changes`, and the rest have chosen `approved` or `approved with changes`. If any required participant has returned `needs work`, the stage rolls up to `needs work` instead.\n- `needs work` \u2014 At least one required participant has responded with `needs work`. `needs work` outranks `approved` and `approved with changes`, so the stage rolls up to this status whenever any required participant has returned `needs work`.\n- `reviewed` \u2014 All reviewer participants have reviewed."
           },
           "deadlineDate": {
             "type": "string",
@@ -363,18 +449,32 @@
           },
           "deadlineTime": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "example": "17:00",
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "description": "Deadline time of day in 24-hour `HH:MM` format (e.g. `\"17:00\"`)."
           },
           "deadlineTimeOfDay": {
             "type": "object",
             "nullable": true,
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
             "properties": {
               "hours": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23,
+                "description": "Hour of the day (0\u201323)."
               },
               "minutes": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59,
+                "description": "Minute of the hour (0\u201359)."
               }
+            },
+            "example": {
+              "hours": 17,
+              "minutes": 0
             }
           },
           "decisionDate": {
@@ -382,23 +482,30 @@
             "format": "date-time"
           },
           "isLocked": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Stage has been manually locked (set inactive)."
           },
           "isActive": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Stage is currently accepting decisions."
           },
           "isLockOverridden": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Stage lock was overridden by an admin."
           },
           "isStarted": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Stage has been started at least once."
           },
           "isCompleted": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "Stage has reached a terminal state."
           },
           "stageMetadata": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Almost entirely a Frame.io integration artifact \u2014 when a Frame.io share is created for the stage it holds the generated review link and comments link. Defaults to `{}` if no Frame share was created (for example, on non-ESM or non-Frame assets).",
+            "default": {}
           },
           "participants": {
             "type": "array",
@@ -417,7 +524,7 @@
           },
           "parentIds": {
             "type": "array",
-            "description": "IDs of stages that must complete before this stage activates",
+            "description": "IDs of stages that must complete before this stage activates.",
             "items": {
               "type": "string"
             }
@@ -453,13 +560,13 @@
           "participantRole": {
             "type": "string",
             "enum": [
-              "reviewer",
-              "approver"
-            ]
+              "approver",
+              "reviewer"
+            ],
+            "description": "Role this participant plays on the stage.\n\n- `approver` \u2014 Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` \u2014 Non-binding; can mark reviewed but does not block approval progression.\n\nThe role, combined with the participant's current decision, also drives the `userInfo.action` value on every approval response \u2014 see [`Approval.userInfo.action`](#section/Schemas/Approval) for the role/decision \u2192 action mapping."
           },
           "participantMetadata": {
-            "type": "object",
-            "additionalProperties": true
+            "$ref": "#/components/schemas/ParticipantMetadata"
           },
           "requesterId": {
             "type": "string",
@@ -467,11 +574,22 @@
           },
           "realRequesterId": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "ID of the proxy user who actually added this participant to the stage. When the participant is added on behalf of another user (e.g. via a technical account or another proxying integration), this is the ID of the actual user making the call (the technical-account / proxy user). The companion `requesterId` field still reflects the user the action is attributed to. When no proxying takes place, this matches the companion field."
           },
           "status": {
             "type": "string",
-            "description": "Participant notification/decision status (e.g. 'notified', 'decided')"
+            "enum": [
+              "not started",
+              "notified",
+              "opened",
+              "commented",
+              "approved",
+              "approved with changes",
+              "needs work",
+              "reviewed"
+            ],
+            "description": "Lifecycle status of this participant on the stage.\n\n- `notified` \u2014 Participant has been sent a notification but has not yet opened or decided.\n- `opened` \u2014 Participant has opened the review but has not yet decided.\n- `commented` \u2014 Participant has left a comment but has not made a final decision.\n- `approved` \u2014 Participant has approved.\n- `approved with changes` \u2014 Participant has approved with changes requested.\n- `needs work` \u2014 Participant returned needs work.\n- `reviewed` \u2014 Participant has marked the review complete (reviewer role only).\n- `not started` \u2014 Participant is on a stage that has not yet become active; no notification has been sent."
           },
           "activities": {
             "type": "array",
@@ -494,6 +612,9 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "wfMetadata": {
+            "$ref": "#/components/schemas/ParticipantWfMetadata"
           }
         }
       },
@@ -504,11 +625,18 @@
             "type": "string"
           },
           "realUserId": {
-            "type": "string"
+            "type": "string",
+            "description": "ID of the proxy user who actually performed the activity. When the activity is performed on behalf of another user (e.g. via a technical account or another proxying integration), this is the ID of the actual user making the call (the technical-account / proxy user). The companion `userId` field still reflects the user the action is attributed to. When no proxying takes place, this matches the companion field."
           },
           "decision": {
             "type": "string",
-            "description": "Decision made (e.g. 'approved', 'needs work', 'approved with changes', 'reviewed')"
+            "description": "Decision made (e.g. 'approved', 'needs work', 'approved with changes', 'reviewed')",
+            "enum": [
+              "approved",
+              "needs work",
+              "approved with changes",
+              "reviewed"
+            ]
           },
           "decisionDate": {
             "type": "string",
@@ -590,6 +718,10 @@
                   ]
                 },
                 "description": "Decisions that count as 'complete' for this trigger"
+              },
+              "activateOnDecision": {
+                "type": "integer",
+                "description": "Number of qualifying decisions on the parent stages that must be reached before the stage activates. Combined with `allowedDecisions` to define which decisions count toward the threshold. Defaults to all required decisions on the listed stages."
               }
             }
           }
@@ -613,42 +745,22 @@
         "description": "Represents one node in the stage dependency graph",
         "properties": {
           "stageId": {
-            "type": "string"
+            "type": "string",
+            "example": "design-review",
+            "description": "Identifier of the stage this structure node represents. Matches the `stageId` on one of the approval's `stages[]` entries; must be unique across all stages on the approval (e.g. `design-review`)."
           },
           "parentIds": {
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "IDs of stages that must complete before this stage activates."
           },
           "triggers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StageTrigger"
             }
-          }
-        }
-      },
-      "ApprovalHistory": {
-        "type": "object",
-        "properties": {
-          "author": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "name": {
-                "type": "string"
-              }
-            }
-          },
-          "creationDate": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "messageText": {
-            "type": "string"
           }
         }
       },
@@ -673,11 +785,16 @@
           },
           "deadlineTime": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "example": "17:00",
+            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+            "description": "Deadline time of day in 24-hour `HH:MM` format (e.g. `\"17:00\"`)."
           },
           "stageMetadata": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Almost entirely a Frame.io integration artifact \u2014 when a Frame.io share is created for the stage it holds the generated review link and comments link. Defaults to `{}` if no Frame share was created (for example, on non-ESM or non-Frame assets).",
+            "default": {}
           },
           "participants": {
             "type": "array",
@@ -703,13 +820,13 @@
                 "participantRole": {
                   "type": "string",
                   "enum": [
-                    "reviewer",
-                    "approver"
-                  ]
+                    "approver",
+                    "reviewer"
+                  ],
+                  "description": "Role this participant plays on the stage.\n\n- `approver` \u2014 Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` \u2014 Non-binding; can mark reviewed but does not block approval progression.\n\nThe role, combined with the participant's current decision, also drives the `userInfo.action` value on every approval response \u2014 see [`Approval.userInfo.action`](#section/Schemas/Approval) for the role/decision \u2192 action mapping."
                 },
                 "participantMetadata": {
-                  "type": "object",
-                  "additionalProperties": true
+                  "$ref": "#/components/schemas/ParticipantMetadata"
                 }
               }
             }
@@ -721,7 +838,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "IDs of stages that must complete before this stage activates."
           },
           "triggers": {
             "type": "array",
@@ -741,7 +859,9 @@
         "description": "Participant definition used in request bodies",
         "properties": {
           "stageId": {
-            "type": "string"
+            "type": "string",
+            "example": "design-review",
+            "description": "ID of an existing stage on the approval to attach this participant to (e.g. `design-review`)."
           },
           "participantId": {
             "type": "string"
@@ -756,13 +876,13 @@
           "participantRole": {
             "type": "string",
             "enum": [
-              "reviewer",
-              "approver"
-            ]
+              "approver",
+              "reviewer"
+            ],
+            "description": "Role this participant plays on the stage.\n\n- `approver` \u2014 Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` \u2014 Non-binding; can mark reviewed but does not block approval progression.\n\nThe role, combined with the participant's current decision, also drives the `userInfo.action` value on every approval response \u2014 see [`Approval.userInfo.action`](#section/Schemas/Approval) for the role/decision \u2192 action mapping."
           },
           "participantMetadata": {
-            "type": "object",
-            "additionalProperties": true
+            "$ref": "#/components/schemas/ParticipantMetadata"
           }
         }
       },
@@ -776,14 +896,15 @@
             "type": "string"
           },
           "assetType": {
-            "type": "string"
-          },
-          "timeframe": {
-            "type": "integer",
-            "description": "Estimated timeframe in business days"
+            "type": "string",
+            "enum": [
+              "DOCV"
+            ]
           },
           "timeframeEstimate": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Computed timeframe estimate, in business days, derived from the sum of each stage's `deadlineBusinessDays` value. Read-only.",
+            "readOnly": true
           },
           "usageCount": {
             "type": "integer"
@@ -828,7 +949,8 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovalStructure"
-            }
+            },
+            "description": "Workflow structure defining stage ordering and trigger dependencies."
           },
           "sharedWith": {
             "type": "array",
@@ -855,14 +977,93 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "timeframe": {
+            "type": "integer",
+            "deprecated": true,
+            "description": "**Deprecated.** Use `timeframeEstimate` instead. Previously used to store the expected duration of the approval in days."
           }
+        },
+        "example": {
+          "templateId": "template-id",
+          "name": "Test Template",
+          "assetType": "DOCV",
+          "creatorId": "user-id",
+          "customerId": "customer-id",
+          "stages": [
+            {
+              "stageId": "stage-1",
+              "name": "Stage 1",
+              "deadlineBusinessDays": 3,
+              "deadlineTimeOfDay": {
+                "hours": 17,
+                "minutes": 0
+              },
+              "participants": [
+                {
+                  "participantId": "user-123",
+                  "participantType": "USER",
+                  "participantRole": "approver",
+                  "participantMetadata": {}
+                }
+              ]
+            },
+            {
+              "stageId": "stage-2",
+              "name": "Stage 2",
+              "deadlineBusinessDays": 2,
+              "deadlineTimeOfDay": {
+                "hours": 12,
+                "minutes": 30
+              },
+              "participants": []
+            }
+          ],
+          "structure": [
+            {
+              "stageId": "stage-1",
+              "parentIds": [],
+              "triggers": [
+                {
+                  "type": "activation",
+                  "when": "onCreate"
+                }
+              ]
+            },
+            {
+              "stageId": "stage-2",
+              "parentIds": [
+                "stage-1"
+              ],
+              "triggers": [
+                {
+                  "type": "activation",
+                  "when": "onStagesComplete",
+                  "parameters": {
+                    "stages": [
+                      "stage-1"
+                    ],
+                    "activateOnDecision": 2,
+                    "allowedDecisions": [
+                      "approved"
+                    ]
+                  }
+                }
+              ]
+            }
+          ],
+          "usageCount": 0,
+          "createdAt": "2026-01-15T17:00:00.000Z",
+          "updatedAt": "2026-01-15T17:00:00.000Z"
         }
       },
       "TemplateStage": {
         "type": "object",
         "properties": {
           "stageId": {
-            "type": "string"
+            "type": "string",
+            "example": "design-review",
+            "description": "Identifier for this template stage. Must be unique across all stages within the template (e.g. `design-review`)."
           },
           "name": {
             "type": "string"
@@ -875,6 +1076,29 @@
             "items": {
               "$ref": "#/components/schemas/TemplateStageParticipant"
             }
+          },
+          "deadlineTimeOfDay": {
+            "type": "object",
+            "nullable": true,
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
+            "properties": {
+              "hours": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23,
+                "description": "Hour of the day (0\u201323)."
+              },
+              "minutes": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59,
+                "description": "Minute of the hour (0\u201359)."
+              }
+            },
+            "example": {
+              "hours": 17,
+              "minutes": 0
+            }
           }
         }
       },
@@ -885,49 +1109,78 @@
             "type": "string"
           },
           "participantType": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "USER",
+              "TEAMOB"
+            ],
+            "description": "Type of participant.\n\n- `USER` \u2014 Individual Workfront user (or AI bot user).\n- `TEAMOB` \u2014 Workfront team."
           },
           "participantRole": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "approver",
+              "reviewer"
+            ],
+            "description": "Role this participant plays on the stage.\n\n- `approver` \u2014 Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` \u2014 Non-binding; can mark reviewed but does not block approval progression.\n\nThe role, combined with the participant's current decision, also drives the `userInfo.action` value on every approval response \u2014 see [`Approval.userInfo.action`](#section/Schemas/Approval) for the role/decision \u2192 action mapping."
           },
           "participantMetadata": {
-            "type": "object",
-            "additionalProperties": true
+            "$ref": "#/components/schemas/ParticipantMetadata"
           },
           "name": {
             "type": "string"
           },
           "emailAddr": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "User's email address. Populated only when `participantType` is `USER`."
           },
           "licenseType": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Workfront license tier of the user. Populated only when `participantType` is `USER`."
           },
           "eauthUserID": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "IMS-bound external authentication user ID. Populated only when `participantType` is `USER`."
           },
           "avatarDate": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Avatar version timestamp used to bust the avatar image cache. Populated only when `participantType` is `USER`."
           },
           "linkTo": {
             "type": "string",
             "nullable": true
+          },
+          "teamMembers": {
+            "type": "array",
+            "description": "Members of the team. Populated only when `participantType` is `TEAMOB`.",
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            }
           }
         }
       },
       "TemplateBody": {
         "type": "object",
-        "description": "Request body for creating or updating a template",
+        "description": "Request body for creating or updating a template.",
+        "required": [
+          "name",
+          "stages"
+        ],
         "properties": {
           "name": {
-            "type": "string"
+            "type": "string",
+            "description": "Display name of the template."
           },
           "assetType": {
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "DOCV"
+            ],
+            "description": "Asset type the template applies to."
           },
           "companyId": {
             "type": "string",
@@ -935,32 +1188,95 @@
           },
           "stages": {
             "type": "array",
+            "minItems": 1,
+            "description": "Stages that make up the template, in graph form.",
             "items": {
               "type": "object",
+              "required": [
+                "stageId",
+                "name"
+              ],
               "properties": {
+                "stageId": {
+                  "type": "string",
+                  "example": "design-review",
+                  "description": "Identifier for this template stage. Must be unique across all stages within the template (e.g. `design-review`)."
+                },
                 "name": {
                   "type": "string"
                 },
+                "parentIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "IDs of stages that must complete before this stage activates."
+                },
+                "triggers": {
+                  "type": "array",
+                  "description": "Activation triggers for the stage. Each entry defines when and how the stage becomes active relative to other stages on the template.",
+                  "items": {
+                    "$ref": "#/components/schemas/StageTrigger"
+                  }
+                },
                 "deadlineBusinessDays": {
-                  "type": "integer"
+                  "type": "integer",
+                  "description": "Number of business days from stage activation to its deadline."
+                },
+                "deadlineTimeOfDay": {
+                  "type": "object",
+                  "nullable": true,
+                  "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
+                  "properties": {
+                    "hours": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 23,
+                      "description": "Hour of the day (0\u201323)."
+                    },
+                    "minutes": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 59,
+                      "description": "Minute of the hour (0\u201359)."
+                    }
+                  },
+                  "example": {
+                    "hours": 17,
+                    "minutes": 0
+                  }
                 },
                 "participants": {
                   "type": "array",
                   "items": {
                     "type": "object",
+                    "required": [
+                      "participantId",
+                      "participantType",
+                      "participantRole"
+                    ],
                     "properties": {
                       "participantId": {
                         "type": "string"
                       },
                       "participantType": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                          "USER",
+                          "TEAMOB"
+                        ],
+                        "description": "Type of participant.\n\n- `USER` \u2014 Individual Workfront user (or AI bot user).\n- `TEAMOB` \u2014 Workfront team."
                       },
                       "participantRole": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": [
+                          "approver",
+                          "reviewer"
+                        ],
+                        "description": "Role this participant plays on the stage.\n\n- `approver` \u2014 Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` \u2014 Non-binding; can mark reviewed but does not block approval progression."
                       },
                       "participantMetadata": {
-                        "type": "object",
-                        "additionalProperties": true
+                        "$ref": "#/components/schemas/ParticipantMetadata"
                       }
                     }
                   }
@@ -970,6 +1286,7 @@
           },
           "sharedWith": {
             "type": "array",
+            "description": "Optional list of users the template is shared with.",
             "items": {
               "type": "object",
               "properties": {
@@ -986,6 +1303,70 @@
               }
             }
           }
+        },
+        "example": {
+          "name": "Test Template",
+          "stages": [
+            {
+              "stageId": "stage-1",
+              "name": "Stage 1",
+              "parentIds": [],
+              "triggers": [
+                {
+                  "type": "activation",
+                  "when": "onCreate"
+                }
+              ],
+              "deadlineBusinessDays": 3,
+              "deadlineTimeOfDay": {
+                "hours": 17,
+                "minutes": 0
+              },
+              "participants": [
+                {
+                  "participantId": "user-123",
+                  "participantType": "USER",
+                  "participantRole": "approver",
+                  "participantMetadata": {}
+                }
+              ]
+            },
+            {
+              "stageId": "stage-2",
+              "name": "Stage 2",
+              "parentIds": [
+                "stage-1"
+              ],
+              "triggers": [
+                {
+                  "type": "activation",
+                  "when": "onStagesComplete",
+                  "parameters": {
+                    "stages": [
+                      "stage-1"
+                    ],
+                    "activateOnDecision": 2,
+                    "allowedDecisions": [
+                      "approved"
+                    ]
+                  }
+                }
+              ],
+              "deadlineBusinessDays": 2,
+              "deadlineTimeOfDay": {
+                "hours": 12,
+                "minutes": 30
+              },
+              "participants": [
+                {
+                  "participantId": "user-456",
+                  "participantType": "USER",
+                  "participantRole": "reviewer",
+                  "participantMetadata": {}
+                }
+              ]
+            }
+          ]
         }
       },
       "ErrorResponse": {
@@ -1009,6 +1390,488 @@
             "description": "Upstream service error response, if applicable"
           }
         }
+      },
+      "GuidelineCheckResult": {
+        "type": "object",
+        "properties": {
+          "guideline": {
+            "type": "string",
+            "description": "Guideline identifier."
+          },
+          "guidelineAttribute": {
+            "type": "string",
+            "description": "Attribute of the guideline being evaluated."
+          },
+          "guidelineTrait": {
+            "type": "string",
+            "description": "Specific trait under the attribute."
+          },
+          "guidelineTraitType": {
+            "type": "string",
+            "description": "Trait type (e.g. critical, non-critical)."
+          },
+          "passed": {
+            "type": "boolean"
+          },
+          "score": {
+            "type": "number"
+          },
+          "reason": {
+            "type": "string",
+            "description": "Explanation for the pass/fail outcome."
+          }
+        }
+      },
+      "ParticipantUserMetadata": {
+        "type": "object",
+        "description": "Metadata fields populated when `participantType` is `USER`.",
+        "additionalProperties": true,
+        "properties": {
+          "isBot": {
+            "type": "boolean",
+            "description": "Whether this user is an AI bot participant."
+          },
+          "participantIdType": {
+            "type": "string",
+            "enum": [
+              "wf_guid",
+              "ims",
+              "email"
+            ],
+            "description": "How `participantId` is typed:\n- `wf_guid` \u2014 non-ESM assets.\n- `ims` \u2014 ESM assets with an IMS `eauthUserID`.\n- `email` \u2014 ESM assets without an IMS `eauthUserID`."
+          },
+          "wfUserId": {
+            "type": "string",
+            "description": "The Workfront internal user ID (32-character hex)."
+          },
+          "emailAddr": {
+            "type": "string",
+            "description": "User's email address. Omitted when not available from Workfront."
+          }
+        }
+      },
+      "ParticipantTeamMetadata": {
+        "type": "object",
+        "description": "Metadata fields populated when `participantType` is `TEAMOB`.",
+        "additionalProperties": true,
+        "properties": {
+          "isBot": {
+            "type": "boolean",
+            "description": "Whether this team is an AI bot participant."
+          }
+        }
+      },
+      "ParticipantMetadata": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "Free-form metadata about the participant. The shape varies by `participantType`:\n\n**`USER` participants**\n```\n{\n  \"isBot\": boolean,\n  \"participantIdType\": \"wf_guid\" | \"ims\" | \"email\",\n  \"wfUserId\": \"string\",\n  \"emailAddr\": \"string\"  // omitted when not available\n}\n```\n\n**`TEAMOB` (team) participants**\n```\n{\n  \"isBot\": boolean\n}\n```\n\nSee `ParticipantUserMetadata` and `ParticipantTeamMetadata` for the typed shapes. Additional context-specific properties may be present; consumers should treat unknown keys as informational.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ParticipantUserMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/ParticipantTeamMetadata"
+          }
+        ]
+      },
+      "TeamMember": {
+        "type": "object",
+        "description": "Workfront user that is a member of a team participant.",
+        "properties": {
+          "ID": {
+            "type": "string",
+            "description": "Workfront user ID."
+          },
+          "name": {
+            "type": "string"
+          },
+          "firstName": {
+            "type": "string"
+          },
+          "lastName": {
+            "type": "string"
+          },
+          "emailAddr": {
+            "type": "string",
+            "nullable": true
+          },
+          "avatarDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "locale": {
+            "type": "string",
+            "nullable": true
+          },
+          "isActive": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ParticipantUserWfMetadata": {
+        "type": "object",
+        "description": "Workfront-derived enrichment fields populated when `participantType` is `USER`.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Display name of the user."
+          },
+          "emailAddr": {
+            "type": "string",
+            "nullable": true,
+            "description": "User's email address."
+          },
+          "licenseType": {
+            "type": "string",
+            "nullable": true,
+            "description": "Workfront license tier."
+          },
+          "wfUserId": {
+            "type": "string",
+            "description": "Workfront internal user ID."
+          },
+          "eauthUserID": {
+            "type": "string",
+            "nullable": true,
+            "description": "IMS-bound external authentication user ID."
+          },
+          "avatarDate": {
+            "type": "string",
+            "nullable": true,
+            "description": "Avatar version timestamp used to bust avatar cache."
+          }
+        }
+      },
+      "ParticipantTeamWfMetadata": {
+        "type": "object",
+        "description": "Workfront-derived enrichment fields populated when `participantType` is `TEAMOB`.",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Team display name."
+          },
+          "avatarDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "teamMembers": {
+            "type": "array",
+            "description": "Members of the team.",
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            }
+          }
+        }
+      },
+      "ParticipantWfMetadata": {
+        "type": "object",
+        "additionalProperties": true,
+        "description": "Workfront-derived enrichment fields for the participant. The shape depends on `participantType` \u2014 see `ParticipantUserWfMetadata` and `ParticipantTeamWfMetadata`.",
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ParticipantUserWfMetadata"
+          },
+          {
+            "$ref": "#/components/schemas/ParticipantTeamWfMetadata"
+          }
+        ]
+      },
+      "ApprovalDeletedResponse": {
+        "type": "object",
+        "description": "Returned when removing the last remaining participant on the approval causes the approval itself to be deleted. The body contains user-context flags only (no approval payload), with `deleted: true` to signal the cascading delete.",
+        "required": [
+          "deleted"
+        ],
+        "properties": {
+          "deleted": {
+            "type": "boolean",
+            "enum": [
+              true
+            ],
+            "description": "Always `true` on this response shape; the approval no longer exists."
+          },
+          "isApprovalActive": {
+            "type": "boolean",
+            "description": "Whether the version being accessed is the document's active head version."
+          },
+          "userInfo": {
+            "type": "object",
+            "properties": {
+              "isEditable": {
+                "type": "boolean",
+                "nullable": true
+              },
+              "hasLicenseAccess": {
+                "type": "boolean",
+                "nullable": true
+              }
+            }
+          },
+          "frameSyncStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "isEsmAsset": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BotReviewFieldResult": {
+        "type": "object",
+        "properties": {
+          "fieldSummary": {
+            "type": "object",
+            "properties": {
+              "totalGuidelineTraitsChecked": {
+                "type": "integer",
+                "description": "Total guideline traits evaluated."
+              },
+              "totalGuidelineTraitsPassed": {
+                "type": "integer",
+                "description": "Number of guideline traits that passed."
+              },
+              "totalCriticalGuidelineTraitsChecked": {
+                "type": "integer",
+                "description": "Total critical guideline traits evaluated."
+              },
+              "totalCriticalGuidelineTraitsPassed": {
+                "type": "integer",
+                "description": "Number of critical guideline traits that passed."
+              },
+              "totalNonCriticalGuidelineTraitsChecked": {
+                "type": "integer",
+                "description": "Total non-critical guideline traits evaluated."
+              },
+              "totalNonCriticalGuidelineTraitsPassed": {
+                "type": "integer",
+                "description": "Number of non-critical guideline traits that passed."
+              }
+            }
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuidelineCheckResult"
+            }
+          }
+        }
+      },
+      "BotReviewValidationResult": {
+        "type": "object",
+        "properties": {
+          "validationSummary": {
+            "type": "object",
+            "description": "Aggregate result across all checks for the asset (or page).",
+            "properties": {
+              "passed": {
+                "type": "boolean",
+                "description": "Whether the asset passed validation overall."
+              },
+              "imageGuidelines": {
+                "type": "object",
+                "description": "Aggregate guideline-trait counts plus an overall pass flag and score.",
+                "properties": {
+                  "totalGuidelineTraitsChecked": {
+                    "type": "integer",
+                    "description": "Total guideline traits evaluated."
+                  },
+                  "totalGuidelineTraitsPassed": {
+                    "type": "integer",
+                    "description": "Number of guideline traits that passed."
+                  },
+                  "totalCriticalGuidelineTraitsChecked": {
+                    "type": "integer",
+                    "description": "Total critical guideline traits evaluated."
+                  },
+                  "totalCriticalGuidelineTraitsPassed": {
+                    "type": "integer",
+                    "description": "Number of critical guideline traits that passed."
+                  },
+                  "totalNonCriticalGuidelineTraitsChecked": {
+                    "type": "integer",
+                    "description": "Total non-critical guideline traits evaluated."
+                  },
+                  "totalNonCriticalGuidelineTraitsPassed": {
+                    "type": "integer",
+                    "description": "Number of non-critical guideline traits that passed."
+                  },
+                  "passed": {
+                    "type": "boolean"
+                  },
+                  "score": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "fieldResults": {
+            "type": "object",
+            "description": "Per-field validation results, keyed by field name.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BotReviewFieldResult"
+            }
+          }
+        }
+      },
+      "BotReview": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique review ID."
+          },
+          "botId": {
+            "type": "string",
+            "description": "ID of the bot that produced this review."
+          },
+          "brandId": {
+            "type": "string",
+            "description": "ID of the brand associated with the bot."
+          },
+          "categoryId": {
+            "type": "string",
+            "nullable": true,
+            "description": "Category for this review, if any."
+          },
+          "validationTypes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Validation types applied to this asset."
+          },
+          "parentObjType": {
+            "type": "string",
+            "description": "Type of the parent object (e.g. `DOCU`)."
+          },
+          "parentObjId": {
+            "type": "string",
+            "description": "ID of the parent object."
+          },
+          "objType": {
+            "type": "string",
+            "description": "Type of the object reviewed (e.g. `DOCV`)."
+          },
+          "objId": {
+            "type": "string",
+            "description": "ID of the object reviewed."
+          },
+          "stageId": {
+            "type": "string",
+            "description": "ID of the approval stage this review is attached to."
+          },
+          "pdfDownloadUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Pre-signed URL to download a PDF of the review, when available."
+          },
+          "bot": {
+            "type": "string",
+            "description": "Display name of the bot at the time of review."
+          },
+          "status": {
+            "type": "string",
+            "description": "Lifecycle status of the review (e.g. completed, failed)."
+          },
+          "failureCode": {
+            "type": "string",
+            "description": "Machine-readable failure code when the review could not complete."
+          },
+          "failureMessage": {
+            "type": "string",
+            "description": "Human-readable failure message paired with `failureCode`."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validationResult": {
+            "$ref": "#/components/schemas/BotReviewValidationResult"
+          },
+          "multiPageValidationResult": {
+            "type": "object",
+            "description": "Per-page validation results for multi-page assets, keyed by page identifier. Each value follows the same shape as `validationResult`.",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/BotReviewValidationResult"
+            }
+          }
+        }
+      },
+      "PartialApproval": {
+        "type": "object",
+        "description": "Returned by GET approval when no approval exists for the asset yet. Contains only the contextual fields that can be computed without an approval record.",
+        "properties": {
+          "isApprovalActive": {
+            "type": "boolean",
+            "description": "Always `true` in this partial shape \u2014 no active approval exists but the asset is eligible."
+          },
+          "isEsmAsset": {
+            "type": "boolean",
+            "description": "Whether the asset is stored in external storage (ESM)."
+          },
+          "frameSyncStatus": {
+            "type": "string",
+            "nullable": true,
+            "description": "Frame sync status for the asset. `null` when no approval exists."
+          },
+          "userInfo": {
+            "type": "object",
+            "properties": {
+              "isEditable": {
+                "type": "boolean",
+                "description": "Whether the requesting user can create or modify an approval for this asset."
+              },
+              "hasLicenseAccess": {
+                "type": "boolean",
+                "description": "Whether the requesting user's license tier grants edit access."
+              }
+            }
+          }
+        },
+        "example": {
+          "isApprovalActive": true,
+          "isEsmAsset": false,
+          "frameSyncStatus": null,
+          "userInfo": {
+            "isEditable": true,
+            "hasLicenseAccess": true
+          }
+        }
+      },
+      "EmptyApproval": {
+        "type": "object",
+        "description": "Returned within the bulk lookup `approvals` array for asset IDs that have no approval. Contains only `assetId` and `frameSyncStatus`.",
+        "properties": {
+          "assetId": {
+            "type": "string",
+            "description": "The asset ID that was queried."
+          },
+          "frameSyncStatus": {
+            "type": "string",
+            "nullable": true,
+            "description": "Always `null` when no approval exists."
+          }
+        },
+        "example": {
+          "assetId": "69b1ea8500006ebab6a5eb8e622d4b09",
+          "frameSyncStatus": null
+        }
+      },
+      "TemplateDeleteResult": {
+        "type": "object",
+        "properties": {
+          "acknowledged": {
+            "type": "boolean",
+            "description": "Whether the delete operation was acknowledged by the database.",
+            "example": true
+          },
+          "deleteCount": {
+            "type": "integer",
+            "description": "Number of templates deleted. `0` when the template ID was not found; `1` when successfully deleted.",
+            "example": 1
+          }
+        }
       }
     },
     "responses": {
@@ -1023,7 +1886,7 @@
         }
       },
       "UnauthorizedResponse": {
-        "description": "Unauthorized — no valid auth credentials provided",
+        "description": "Unauthorized \u2014 no valid auth credentials provided",
         "content": {
           "application/json": {
             "schema": {
@@ -1043,7 +1906,7 @@
         }
       },
       "BadRequestResponse": {
-        "description": "Bad Request — validation failure or invalid state",
+        "description": "Bad Request \u2014 validation failure or invalid state",
         "content": {
           "application/json": {
             "schema": {
@@ -1061,6 +1924,16 @@
             }
           }
         }
+      },
+      "LengthRequiredResponse": {
+        "description": "Length Required \u2014 the service requires a `Content-Length` header. Send an empty JSON object (`{}`) as the request body.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
       }
     }
   },
@@ -1071,15 +1944,9 @@
           "Approvals"
         ],
         "summary": "Get approval",
-        "description": "Get approval details for an asset.",
+        "description": "Get approval details for an asset. Returns the full `Approval` object when an approval exists. When no approval has been created for the asset yet, returns a partial response containing only `isApprovalActive`, `isEsmAsset`, `frameSyncStatus`, and `userInfo`.",
         "operationId": "getApproval",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1092,6 +1959,21 @@
             "$ref": "#/components/parameters/AssetId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -1100,7 +1982,24 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/ApprovalResponse"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Approval"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PartialApproval"
+                    }
+                  ],
+                  "discriminator": {
+                    "propertyName": "approvalGuid"
+                  }
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -1121,15 +2020,9 @@
           "Approvals"
         ],
         "summary": "Create approval",
-        "description": "Creates an approval for an ESM document with the given stage data. If a `templateId` is provided the stage structure is loaded from that template.",
+        "description": "Creates an approval with the supplied stage data. The `stages` array in the body defines the approval structure and is used as-is. `templateId` is optional metadata: the caller is expected to have fetched the template separately (`GET /api/v1/templates/{templateId}`) and copied its stages into the request body. When `templateId` is supplied, it is recorded on the new approval and the corresponding template's `usageCount` is incremented and `lastUsedOnDate` is refreshed.",
         "operationId": "createApproval",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1140,6 +2033,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1154,29 +2062,31 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "stages"
-                ],
                 "properties": {
                   "stages": {
                     "type": "array",
                     "minItems": 1,
+                    "description": "Stage definitions used to build the approval. The server uses this array as-is \u2014 it does not look up or expand any referenced template. To create an approval from a template, the caller must fetch the template independently (`GET /api/v1/templates/{templateId}`), copy its `stages` into this array, and optionally pass the same `templateId` to record the source on the approval and increment its usage counter.",
                     "items": {
                       "$ref": "#/components/schemas/StageBody"
                     }
                   },
                   "templateId": {
                     "type": "string",
-                    "description": "Optional template ID to base the approval structure on"
+                    "description": "ID of the template used to create this approval, if any. Recorded on the approval for traceability and used to increment the template's `usageCount` and refresh `lastUsedOnDate`. The server does **not** load stages from the template \u2014 the caller must fetch the template via `GET /api/v1/templates/{templateId}` and copy its stages into the `stages` array."
                   }
-                }
+                },
+                "required": [
+                  "stages"
+                ]
               }
             }
           }
         },
         "responses": {
-          "200": {
-            "$ref": "#/components/responses/ApprovalResponse"
+          "201": {
+            "$ref": "#/components/responses/ApprovalResponse",
+            "description": "Approval created."
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -1194,15 +2104,9 @@
           "Approvals"
         ],
         "summary": "Delete approval",
-        "description": "Deletes the approval for the given asset. The asset must be in an editable state.",
+        "description": "Deletes the approval for the given asset. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "deleteApproval",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1215,6 +2119,21 @@
             "$ref": "#/components/parameters/AssetId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -1222,8 +2141,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Approval deleted successfully"
+          "204": {
+            "description": "Approval deleted successfully \u2014 no content returned"
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -1250,12 +2169,6 @@
         "operationId": "getSuggestedApprovals",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1265,6 +2178,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1326,16 +2254,10 @@
         "tags": [
           "Stages"
         ],
-        "summary": "Create stages",
-        "description": "Creates an approval with the given stage data. Returns 201 on success.",
+        "summary": "Create stages (auto-creates approval)",
+        "description": "Adds one or more stages to the approval for the given asset. If no approval exists for the asset yet, one is created automatically \u2014 so this endpoint can be used in place of `POST /api/v1/approvals/{assetType}/{assetId}` to create an approval and its initial stages in a single call. Returns 201 on success.",
         "operationId": "postStages",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1346,6 +2268,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1360,9 +2297,6 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "required": [
-                  "stages"
-                ],
                 "properties": {
                   "stages": {
                     "type": "array",
@@ -1372,9 +2306,13 @@
                     }
                   },
                   "templateId": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "ID of the template used to create this approval, if any."
                   }
-                }
+                },
+                "required": [
+                  "stages"
+                ]
               }
             }
           }
@@ -1399,15 +2337,9 @@
           "Stages"
         ],
         "summary": "Update all stages",
-        "description": "Replaces all stages on an existing approval with the given stage data. The asset must be in an editable state.",
+        "description": "Replaces all stages on an existing approval with the given stage data. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "putStages",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1418,6 +2350,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1439,7 +2386,10 @@
                       "$ref": "#/components/schemas/StageBody"
                     }
                   }
-                }
+                },
+                "required": [
+                  "stages"
+                ]
               }
             }
           }
@@ -1469,15 +2419,9 @@
           "Stages"
         ],
         "summary": "Update a stage",
-        "description": "Partially updates any field on the specified stage. The asset must be in an editable state.",
+        "description": "Partially updates any field on the specified stage. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "patchStage",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1491,6 +2435,21 @@
           },
           {
             "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1532,15 +2491,9 @@
           "Stages"
         ],
         "summary": "Delete a stage",
-        "description": "Deletes the specified stage from the approval. The asset must be in an editable state.",
+        "description": "Deletes the specified stage from the approval. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "deleteStage",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1554,6 +2507,21 @@
           },
           {
             "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1587,15 +2555,9 @@
           "Stages"
         ],
         "summary": "Lock a stage",
-        "description": "Locks the specified stage. All decisions on the stage must have been made before locking. The asset must be in an editable state.",
+        "description": "Locks the specified stage. All decisions on the stage must have been made before locking. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "lockStage",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1609,6 +2571,21 @@
           },
           {
             "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1632,6 +2609,21 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Send an empty JSON object. The service returns HTTP 411 if no body is provided.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
           }
         }
       }
@@ -1642,15 +2634,9 @@
           "Stages"
         ],
         "summary": "Unlock a stage",
-        "description": "Unlocks the specified stage, making it editable again. The asset must be in an editable state.",
+        "description": "Unlocks the specified stage, making it editable again. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "unlockStage",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -1664,6 +2650,21 @@
           },
           {
             "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1687,6 +2688,21 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Send an empty JSON object. The service returns HTTP 411 if no body is provided.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
           }
         }
       }
@@ -1701,12 +2717,6 @@
         "operationId": "makeDecisions",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1716,6 +2726,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1733,7 +2758,13 @@
                 "properties": {
                   "decision": {
                     "type": "string",
-                    "description": "The decision value (e.g. `approved`, `needs work`, `approved with changes`, `reviewed`)"
+                    "description": "The decision value (e.g. `approved`, `needs work`, `approved with changes`, `reviewed`)",
+                    "enum": [
+                      "approved",
+                      "needs work",
+                      "approved with changes",
+                      "reviewed"
+                    ]
                   },
                   "stageIds": {
                     "type": "array",
@@ -1774,12 +2805,6 @@
         "operationId": "deleteDecisions",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1789,6 +2814,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1826,12 +2866,6 @@
         "operationId": "makeDecisionOnStage",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1844,6 +2878,21 @@
           },
           {
             "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1861,7 +2910,13 @@
                 "properties": {
                   "decision": {
                     "type": "string",
-                    "description": "The decision value"
+                    "description": "The decision value",
+                    "enum": [
+                      "approved",
+                      "needs work",
+                      "approved with changes",
+                      "reviewed"
+                    ]
                   }
                 }
               }
@@ -1895,12 +2950,6 @@
         "operationId": "deleteDecisionOnStage",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1913,6 +2962,21 @@
           },
           {
             "$ref": "#/components/parameters/StageId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1950,12 +3014,6 @@
         "operationId": "getSuggestedParticipants",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -1965,6 +3023,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -1990,10 +3063,20 @@
                             "type": "string"
                           },
                           "participantType": {
-                            "type": "string"
+                            "type": "string",
+                            "enum": [
+                              "USER",
+                              "TEAMOB"
+                            ],
+                            "description": "Type of participant.\n\n- `USER` \u2014 Individual Workfront user (or AI bot user).\n- `TEAMOB` \u2014 Workfront team."
                           },
                           "participantRole": {
-                            "type": "string"
+                            "type": "string",
+                            "enum": [
+                              "approver",
+                              "reviewer"
+                            ],
+                            "description": "Role this participant plays on the stage.\n\n- `approver` \u2014 Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` \u2014 Non-binding; can mark reviewed but does not block approval progression.\n\nThe role, combined with the participant's current decision, also drives the `userInfo.action` value on every approval response \u2014 see [`Approval.userInfo.action`](#section/Schemas/Approval) for the role/decision \u2192 action mapping."
                           }
                         }
                       }
@@ -2025,15 +3108,9 @@
           "Participants"
         ],
         "summary": "Add participants",
-        "description": "Adds one or more participants to an approval. If the approval does not yet exist, one will be created. If a participant already exists they will be merged and updated. The asset must be in an editable state.",
+        "description": "Adds one or more participants to an approval. If the approval does not yet exist, one will be created. If a participant already exists they will be merged and updated. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "addParticipants",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2044,6 +3121,21 @@
           },
           {
             "$ref": "#/components/parameters/AssetId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -2090,15 +3182,9 @@
           "Participants"
         ],
         "summary": "Delete participant",
-        "description": "Removes a participant from the approval. If all participants are removed, the stage and approval are also deleted. The asset must be in an editable state.",
+        "description": "Removes a participant from the approval. If all participants are removed, the stage and approval are also deleted. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "deleteParticipant",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2117,6 +3203,21 @@
             "$ref": "#/components/parameters/ParticipantId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2125,7 +3226,21 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/components/responses/ApprovalResponse"
+            "description": "OK. Returns the updated approval when participants remain. When removing this participant empties the approval, the approval is deleted and the response is an `ApprovalDeletedResponse` envelope with `deleted: true` instead of the full approval payload.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/Approval"
+                    },
+                    {
+                      "$ref": "#/components/schemas/ApprovalDeletedResponse"
+                    }
+                  ]
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -2148,15 +3263,9 @@
           "Participants"
         ],
         "summary": "Remind participant",
-        "description": "Sends a reminder notification to the specified participant. The approval must exist and be in an editable state.",
+        "description": "Sends a reminder notification to the specified participant. The approval must exist and be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "remindParticipant",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2172,6 +3281,21 @@
             "$ref": "#/components/parameters/ParticipantId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2180,7 +3304,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Reminder sent"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Approval"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -2193,6 +3324,44 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "participantId"
+                ],
+                "properties": {
+                  "participantId": {
+                    "type": "string",
+                    "description": "ID of the participant to remind. Must match the `participantId` in the URL path."
+                  },
+                  "participantType": {
+                    "type": "string",
+                    "enum": [
+                      "USER",
+                      "TEAMOB"
+                    ],
+                    "description": "Optional. Type of the participant being reminded.\n\n- `USER` \u2014 Individual Workfront user (or AI bot user).\n- `TEAMOB` \u2014 Workfront team."
+                  },
+                  "participantRole": {
+                    "type": "string",
+                    "enum": [
+                      "approver",
+                      "reviewer"
+                    ],
+                    "description": "Optional. Role of the participant being reminded.\n\n- `approver` \u2014 Has a binding vote.\n- `reviewer` \u2014 Non-binding."
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2207,12 +3376,6 @@
         "operationId": "remindUndecidedParticipants",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -2224,6 +3387,21 @@
             "$ref": "#/components/parameters/AssetId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2232,7 +3410,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Reminders sent"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Approval"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -2245,7 +3430,22 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
           }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          },
+          "description": "Send an empty JSON object at minimum. The service returns HTTP 411 if no body is provided."
         }
       }
     },
@@ -2258,12 +3458,6 @@
         "description": "Sends a reminder notification to a specific participant within a specific stage.",
         "operationId": "remindMultiStageParticipant",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2282,6 +3476,21 @@
             "$ref": "#/components/parameters/ParticipantId"
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -2290,7 +3499,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Reminder sent"
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Approval"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -2303,6 +3519,41 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "participantId": {
+                    "type": "string",
+                    "description": "ID of the participant to remind. Must match the `participantId` in the URL path."
+                  },
+                  "participantType": {
+                    "type": "string",
+                    "enum": [
+                      "USER",
+                      "TEAMOB"
+                    ],
+                    "description": "Optional. Type of the participant being reminded.\n\n- `USER` \u2014 Individual Workfront user (or AI bot user).\n- `TEAMOB` \u2014 Workfront team."
+                  },
+                  "participantRole": {
+                    "type": "string",
+                    "enum": [
+                      "approver",
+                      "reviewer"
+                    ],
+                    "description": "Optional. Role of the participant being reminded.\n\n- `approver` \u2014 Has a binding vote.\n- `reviewer` \u2014 Non-binding."
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2316,12 +3567,6 @@
         "description": "Sends reminder notifications to all undecided participants within a specific stage.",
         "operationId": "remindMultiStageUndecidedParticipants",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -2337,56 +3582,19 @@
             "$ref": "#/components/parameters/StageId"
           },
           {
-            "$ref": "#/components/parameters/XRequestId"
+            "$ref": "#/components/parameters/XApiKey"
           },
           {
-            "$ref": "#/components/parameters/XCorrelationId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Reminders sent"
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestResponse"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundResponse"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
-        }
-      }
-    },
-    "/api/v1/approvals/{assetType}/{assetId}/history": {
-      "get": {
-        "tags": [
-          "Approvals"
-        ],
-        "summary": "Get approval history",
-        "description": "Returns the event history for an approval.",
-        "operationId": "getApprovalHistory",
-        "security": [
-          {
-            "WorkfrontAuthCookie": []
+            "$ref": "#/components/parameters/XGwSubdomain"
           },
           {
-            "WorkfrontAuthHeader": []
+            "$ref": "#/components/parameters/WfCustomerId"
           },
           {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/AssetType"
+            "$ref": "#/components/parameters/WfUserId"
           },
           {
-            "$ref": "#/components/parameters/AssetId"
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -2401,10 +3609,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/ApprovalHistory"
-                  }
+                  "$ref": "#/components/schemas/Approval"
                 }
               }
             }
@@ -2420,800 +3625,22 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
-        }
-      }
-    },
-    "/api/v1/approvals/search/{assetType}": {
-      "post": {
-        "tags": [
-          "Approvals"
-        ],
-        "summary": "Search approvals by asset type",
-        "description": "If a body with asset IDs is provided, returns approvals for those assets. Otherwise returns all approvals on projects owned by the current user that are in the current status.",
-        "operationId": "searchApprovalsByAssetType",
-        "security": [
-          {
-            "WorkfrontAuthCookie": []
           },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/AssetType"
-          },
-          {
-            "$ref": "#/components/parameters/XRequestId"
-          },
-          {
-            "$ref": "#/components/parameters/XCorrelationId"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "assetIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "assetType": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
           }
         },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "approvals": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/Approval"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestResponse"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
-        }
-      }
-    },
-    "/api/v1/approvals/lock": {
-      "put": {
-        "tags": [
-          "Approvals"
-        ],
-        "summary": "Lock approvals",
-        "description": "Locks the stage and overall approval for the given asset IDs. All decisions on the stage must have been made before locking.",
-        "operationId": "lockApprovals",
-        "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/XRequestId"
-          },
-          {
-            "$ref": "#/components/parameters/XCorrelationId"
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {
-                  "assetIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "assetType": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "assetIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "assetType": {
-                      "type": "string"
-                    }
-                  }
-                }
+                "properties": {}
               }
             }
           },
-          "400": {
-            "$ref": "#/components/responses/BadRequestResponse"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundResponse"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
-        }
-      }
-    },
-    "/api/v1/approvals/unlock": {
-      "put": {
-        "tags": [
-          "Approvals"
-        ],
-        "summary": "Unlock approvals",
-        "description": "Unlocks the stage and overall approval for the given asset IDs.",
-        "operationId": "unlockApprovals",
-        "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/XRequestId"
-          },
-          {
-            "$ref": "#/components/parameters/XCorrelationId"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "assetIds": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "assetType": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "assetIds": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "assetType": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestResponse"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundResponse"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
-        }
-      }
-    },
-    "/api/v1/approvals/frame/assetSyncStatus/{assetId}": {
-      "get": {
-        "tags": [
-          "Approvals"
-        ],
-        "summary": "Check Frame.io asset sync status",
-        "description": "Checks whether a Frame.io asset referenced by the given Workfront document version ID has finished syncing and is ready for use.",
-        "operationId": "isFrameAssetReady",
-        "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/AssetId"
-          },
-          {
-            "$ref": "#/components/parameters/XRequestId"
-          },
-          {
-            "$ref": "#/components/parameters/XCorrelationId"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Frame API response — array of matching assets",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "name": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "type": "string"
-                      },
-                      "media_type": {
-                        "type": "string"
-                      },
-                      "file_size": {
-                        "type": "number"
-                      },
-                      "status": {
-                        "type": "string"
-                      },
-                      "version": {
-                        "type": "string"
-                      },
-                      "created_at": {
-                        "type": "string"
-                      },
-                      "updated_at": {
-                        "type": "string"
-                      }
-                    },
-                    "additionalProperties": true
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "404": {
-            "description": "Asset not found in Frame.io",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    },
-                    "errors": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "detail": {
-                            "type": "string"
-                          },
-                          "title": {
-                            "type": "string"
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
-        }
-      }
-    },
-    "/api/v1/approvals/search": {
-      "post": {
-        "tags": [
-          "Search"
-        ],
-        "summary": "Search approvals",
-        "description": "Searches approvals with rich filtering. Supports cursor-based pagination.",
-        "operationId": "searchApprovals",
-        "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/XRequestId"
-          },
-          {
-            "$ref": "#/components/parameters/XCorrelationId"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "projectId": {
-                    "description": "Workfront project ID(s)",
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "folderId": {
-                    "description": "Workfront folder ID(s). Use `null` to search the root folder.",
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "nullable": true
-                        }
-                      }
-                    ]
-                  },
-                  "assetType": {
-                    "description": "Asset type(s) to filter by",
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "assetId": {
-                    "description": "Asset ID(s) to filter by",
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "approvalStatus": {
-                    "type": "string"
-                  },
-                  "creatorId": {
-                    "type": "string"
-                  },
-                  "createdDateFrom": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "createdDateTo": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "productId": {
-                    "type": "string"
-                  },
-                  "stageStatus": {
-                    "description": "Stage status value(s) to filter by",
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "stageDeadlineDateFrom": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "stageDeadlineDateTo": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "participantType": {
-                    "type": "string"
-                  },
-                  "participantId": {
-                    "type": "string"
-                  },
-                  "participantRole": {
-                    "type": "string"
-                  },
-                  "participantStatus": {
-                    "description": "Participant status value(s) to filter by",
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "overdue": {
-                    "type": "boolean"
-                  },
-                  "view": {
-                    "type": "string",
-                    "description": "View preset that controls which fields are returned"
-                  },
-                  "cursor": {
-                    "type": "string",
-                    "nullable": true,
-                    "description": "Pagination cursor from a previous response"
-                  },
-                  "limit": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100,
-                    "default": 20
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": true,
-                        "description": "Approval object shape may vary by `view` parameter"
-                      }
-                    },
-                    "cursor": {
-                      "type": "string",
-                      "nullable": true,
-                      "description": "Pass to the next request to fetch the next page"
-                    }
-                  }
-                },
-                "example": {
-                  "data": [
-                    {
-                      "approvalGuid": "6744feadafbbfb97a7c1c325",
-                      "assetId": "i1HLOKeXUpFJxfkonfY9TIguYPKbIzm5",
-                      "assetType": "DOCV",
-                      "status": "approved",
-                      "createdAt": "2024-11-25T22:48:13.598Z"
-                    }
-                  ],
-                  "cursor": "eyJjdXJzb3IiOnsic3RhZ2VJZCI6ImRldmVsb3Blci1yZXZpZXcifX0="
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestResponse"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
-        }
-      }
-    },
-    "/api/v1/search/approvals": {
-      "post": {
-        "tags": [
-          "Search"
-        ],
-        "summary": "Search approvals (v2)",
-        "description": "Searches approvals using the same filter set as `POST /api/v1/approvals/search` but routed through the dedicated search service.",
-        "operationId": "searchApprovalsV2",
-        "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
-            "Bearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/XRequestId"
-          },
-          {
-            "$ref": "#/components/parameters/XCorrelationId"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "projectId": {
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "folderId": {
-                    "oneOf": [
-                      {
-                        "type": "string",
-                        "nullable": true
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string",
-                          "nullable": true
-                        }
-                      }
-                    ]
-                  },
-                  "assetType": {
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "assetId": {
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "approvalStatus": {
-                    "type": "string"
-                  },
-                  "creatorId": {
-                    "type": "string"
-                  },
-                  "createdDateFrom": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "createdDateTo": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "productId": {
-                    "type": "string"
-                  },
-                  "stageStatus": {
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "stageDeadlineDateFrom": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "stageDeadlineDateTo": {
-                    "type": "string",
-                    "format": "date-time"
-                  },
-                  "participantType": {
-                    "type": "string"
-                  },
-                  "participantId": {
-                    "type": "string"
-                  },
-                  "participantRole": {
-                    "type": "string"
-                  },
-                  "participantStatus": {
-                    "oneOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
-                      }
-                    ]
-                  },
-                  "overdue": {
-                    "type": "boolean"
-                  },
-                  "view": {
-                    "type": "string"
-                  },
-                  "cursor": {
-                    "type": "string",
-                    "nullable": true
-                  },
-                  "limit": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100,
-                    "default": 20
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "additionalProperties": true
-                      }
-                    },
-                    "cursor": {
-                      "type": "string",
-                      "nullable": true
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequestResponse"
-          },
-          "401": {
-            "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          }
+          "description": "Send an empty JSON object at minimum. The service returns HTTP 411 if no body is provided."
         }
       }
     },
@@ -3227,16 +3654,25 @@
         "operationId": "getTemplates",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
         "parameters": [
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
           {
             "$ref": "#/components/parameters/XRequestId"
           },
@@ -3250,10 +3686,18 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Template"
-                  }
+                  "type": "object",
+                  "properties": {
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Template"
+                      }
+                    }
+                  },
+                  "required": [
+                    "templates"
+                  ]
                 }
               }
             }
@@ -3275,16 +3719,25 @@
         "operationId": "createTemplate",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
         "parameters": [
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
           {
             "$ref": "#/components/parameters/XRequestId"
           },
@@ -3335,18 +3788,27 @@
         "operationId": "getTemplate",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
         "parameters": [
           {
             "$ref": "#/components/parameters/TemplateId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -3373,7 +3835,7 @@
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+            "description": "Internal Server Error. Also returned when the template ID does not exist \u2014 the service currently returns 500 instead of 404 for unrecognized IDs."
           }
         }
       },
@@ -3381,16 +3843,10 @@
         "tags": [
           "Templates"
         ],
-        "summary": "Replace template",
-        "description": "Fully replaces an approval template. Requires template management permissions.",
+        "summary": "Update template",
+        "description": "Partially updates an approval template. Requires template management permissions.",
         "operationId": "putTemplate",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -3398,6 +3854,21 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/TemplateId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -3450,18 +3921,27 @@
         "operationId": "patchTemplate",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
         "parameters": [
           {
             "$ref": "#/components/parameters/TemplateId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -3514,18 +3994,27 @@
         "operationId": "deleteTemplate",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
         "parameters": [
           {
             "$ref": "#/components/parameters/TemplateId"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
           },
           {
             "$ref": "#/components/parameters/XRequestId"
@@ -3536,13 +4025,10 @@
         ],
         "responses": {
           "200": {
-            "description": "Template deleted"
+            "description": "Template deleted successfully."
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
-          },
-          "404": {
-            "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
@@ -3560,12 +4046,6 @@
         "operationId": "bulkDeleteTemplates",
         "security": [
           {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
-          {
             "Bearer": []
           }
         ],
@@ -3581,6 +4061,21 @@
             }
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -3589,13 +4084,20 @@
         ],
         "responses": {
           "200": {
-            "description": "Templates deleted"
+            "description": "Delete operation acknowledged. Check `deleteCount` to determine whether the template existed: `1` means deleted, `0` means no template with that ID was found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateDeleteResult"
+                }
+              }
+            }
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+            "description": "Returned when one or more supplied IDs are not valid MongoDB ObjectId format strings. Valid-format IDs that do not match any template return 200 with deletedCount: 0."
           }
         }
       }
@@ -3605,16 +4107,10 @@
         "tags": [
           "Bots"
         ],
-        "summary": "List bots",
-        "description": "Returns a paginated list of bot accounts available in the current customer's Workfront instance.",
+        "summary": "List bot reviewers",
+        "description": "Returns a paginated list of Workfront bot users that are eligible to be added as reviewer participants on an approval. A bot reviewer is invoked automatically when its assigned stage becomes active.",
         "operationId": "getBots",
         "security": [
-          {
-            "WorkfrontAuthCookie": []
-          },
-          {
-            "WorkfrontAuthHeader": []
-          },
           {
             "Bearer": []
           }
@@ -3639,6 +4135,21 @@
             }
           },
           {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
             "$ref": "#/components/parameters/XRequestId"
           },
           {
@@ -3654,7 +4165,7 @@
                   "type": "object",
                   "required": [
                     "metadata",
-                    "items"
+                    "results"
                   ],
                   "properties": {
                     "metadata": {
@@ -3674,60 +4185,305 @@
                         }
                       }
                     },
-                    "items": {
+                    "results": {
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "required": [
-                          "id",
-                          "type",
-                          "associatedTechnicalAccountId",
-                          "user"
-                        ],
+                        "additionalProperties": true,
                         "properties": {
                           "id": {
-                            "type": "string"
+                            "type": "string",
+                            "description": "The unique identifier for the bot"
+                          },
+                          "name": {
+                            "type": "string",
+                            "description": "The name the creator gave to the bot"
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "The description of what the bot does or is used for"
                           },
                           "type": {
-                            "type": "string"
+                            "type": "string",
+                            "enum": [
+                              "doc-brand-reviewer"
+                            ]
                           },
-                          "associatedTechnicalAccountId": {
-                            "type": "string"
+                          "isActive": {
+                            "type": "boolean",
+                            "description": "Whether the bot has been enabled"
                           },
-                          "user": {
-                            "type": "object",
-                            "required": [
-                              "ID",
-                              "eauthUserID",
-                              "name",
-                              "emailAddr",
-                              "isActive"
-                            ],
-                            "properties": {
-                              "ID": {
-                                "type": "string"
-                              },
-                              "eauthUserID": {
-                                "type": "string"
-                              },
-                              "name": {
-                                "type": "string"
-                              },
-                              "emailAddr": {
-                                "type": "string"
-                              },
-                              "isBot": {
-                                "type": "boolean"
-                              },
-                              "isActive": {
-                                "type": "boolean"
-                              }
-                            }
+                          "brandId": {
+                            "type": "string",
+                            "description": "The ID of the brand the bot is associated with"
+                          },
+                          "creatorId": {
+                            "type": "string",
+                            "description": "The ID of the user who created the bot"
+                          },
+                          "customerId": {
+                            "type": "string",
+                            "description": "The ID of the Workfront customer the bot is associated with"
+                          },
+                          "imsOrgId": {
+                            "type": "string",
+                            "description": "The IMS organization ID associated with the bot"
+                          },
+                          "eauthUserID": {
+                            "type": "string",
+                            "description": "The IMS user ID associated with the bot"
+                          },
+                          "wfUserId": {
+                            "type": "string",
+                            "description": "The Workfront user ID associated with the bot"
                           }
                         }
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/bot-reviews/search": {
+      "post": {
+        "tags": [
+          "Bot Reviews"
+        ],
+        "summary": "Search AI brand reviews",
+        "description": "Returns AI brand-review results produced for a document version under an approval. Each review is generated when a bot reviewer participant runs against a stage on the approval and captures the bot\u2019s pass/fail findings against the brand\u2019s guidelines. Filter results by bot, document version, parent document, or stage to narrow the response to a specific asset, review run, or stage on its approval.",
+        "operationId": "searchBotReviews",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "botEauthUserId": {
+                    "type": "string",
+                    "description": "The Workfront eauthUserID of the bot. Maps to associatedTechnicalAccountId on the bot record. Required if `objId` and `parentObjId` are not provided."
+                  },
+                  "parentObjType": {
+                    "type": "string",
+                    "enum": [
+                      "DOCU"
+                    ],
+                    "description": "Type of the parent object."
+                  },
+                  "parentObjId": {
+                    "type": "string",
+                    "description": "ID of the parent object (the document). Required if `objId` and `botEauthUserId` are not provided."
+                  },
+                  "objType": {
+                    "type": "string",
+                    "enum": [
+                      "DOCV"
+                    ],
+                    "description": "Type of the object being reviewed."
+                  },
+                  "objId": {
+                    "type": "string",
+                    "description": "ID of the object being reviewed (the document version). Required if `parentObjId` and `botEauthUserId` are not provided."
+                  },
+                  "stageId": {
+                    "type": "string",
+                    "description": "ID of the stage on the approval."
+                  },
+                  "page": {
+                    "type": "integer",
+                    "default": 1
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 20,
+                    "minimum": 1,
+                    "maximum": 100
+                  }
+                },
+                "description": "At least one of `objId`, `parentObjId`, or `botEauthUserId` must be provided. Omitting all three will result in a 403 response."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "reviews"
+                  ],
+                  "properties": {
+                    "reviews": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/BotReview"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "403": {
+            "description": "Forbidden \u2014 returned when none of `objId`, `parentObjId`, or `botEauthUserId` are provided in the request body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/search/{assetType}": {
+      "post": {
+        "tags": [
+          "Approvals"
+        ],
+        "summary": "Bulk lookup approvals by asset ID",
+        "description": "Simple bulk lookup of approvals for a known list of asset IDs within a specific asset type. Provide the asset type in the path and an array of `assetIds` in the body to retrieve their approvals in a single call. If no body is supplied, the endpoint returns approvals for projects owned by the requesting user that are currently in review. Asset IDs with no approval are included in the response array as a stub containing only `assetId` and `frameSyncStatus: null`.",
+        "operationId": "bulkLookupApprovalsByAssetType",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AssetType"
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "assetIds": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Asset IDs to look up approvals for."
+                  },
+                  "assetType": {
+                    "type": "string",
+                    "description": "Optional. Asset type in the body. The path-level `assetType` is authoritative.",
+                    "enum": [
+                      "DOCV"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "approvals": {
+                      "type": "array",
+                      "items": {
+                        "oneOf": [
+                          {
+                            "$ref": "#/components/schemas/Approval"
+                          },
+                          {
+                            "$ref": "#/components/schemas/EmptyApproval"
+                          }
+                        ]
+                      },
+                      "description": "List of approvals. Asset IDs with no approval are represented as stub objects with only `assetId` and `frameSyncStatus`."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request. Returned for validation errors, or when the request body is an empty object (`{}`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
