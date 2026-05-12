@@ -1875,6 +1875,9 @@
             }
           }
         }
+      },
+      "LengthRequiredResponse": {
+        "description": "Length Required \u2014 the service requires a `Content-Length` header. Send an empty JSON object (`{}`) as the request body."
       }
     }
   },
@@ -2015,7 +2018,7 @@
           "Approvals"
         ],
         "summary": "Delete approval",
-        "description": "Deletes the approval for the given asset. The asset must be in an editable state.",
+        "description": "Deletes the approval for the given asset. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "deleteApproval",
         "security": [
           {
@@ -2226,7 +2229,7 @@
           "Stages"
         ],
         "summary": "Update all stages",
-        "description": "Replaces all stages on an existing approval with the given stage data. The asset must be in an editable state.",
+        "description": "Replaces all stages on an existing approval with the given stage data. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "putStages",
         "security": [
           {
@@ -2310,7 +2313,7 @@
           "Stages"
         ],
         "summary": "Update a stage",
-        "description": "Partially updates any field on the specified stage. The asset must be in an editable state.",
+        "description": "Partially updates any field on the specified stage. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "patchStage",
         "security": [
           {
@@ -2367,7 +2370,7 @@
           "Stages"
         ],
         "summary": "Delete a stage",
-        "description": "Deletes the specified stage from the approval. The asset must be in an editable state.",
+        "description": "Deletes the specified stage from the approval. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "deleteStage",
         "security": [
           {
@@ -2416,7 +2419,7 @@
           "Stages"
         ],
         "summary": "Lock a stage",
-        "description": "Locks the specified stage. All decisions on the stage must have been made before locking. The asset must be in an editable state.",
+        "description": "Locks the specified stage. All decisions on the stage must have been made before locking. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "lockStage",
         "security": [
           {
@@ -2455,6 +2458,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
           }
         },
         "requestBody": {
@@ -2477,7 +2483,7 @@
           "Stages"
         ],
         "summary": "Unlock a stage",
-        "description": "Unlocks the specified stage, making it editable again. The asset must be in an editable state.",
+        "description": "Unlocks the specified stage, making it editable again. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "unlockStage",
         "security": [
           {
@@ -2516,6 +2522,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
           }
         },
         "requestBody": {
@@ -2853,7 +2862,7 @@
           "Participants"
         ],
         "summary": "Add participants",
-        "description": "Adds one or more participants to an approval. If the approval does not yet exist, one will be created. If a participant already exists they will be merged and updated. The asset must be in an editable state.",
+        "description": "Adds one or more participants to an approval. If the approval does not yet exist, one will be created. If a participant already exists they will be merged and updated. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "addParticipants",
         "security": [
           {
@@ -2912,7 +2921,7 @@
           "Participants"
         ],
         "summary": "Delete participant",
-        "description": "Removes a participant from the approval. If all participants are removed, the stage and approval are also deleted. The asset must be in an editable state.",
+        "description": "Removes a participant from the approval. If all participants are removed, the stage and approval are also deleted. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "deleteParticipant",
         "security": [
           {
@@ -2978,7 +2987,7 @@
           "Participants"
         ],
         "summary": "Remind participant",
-        "description": "Sends a reminder notification to the specified participant. The approval must exist and be in an editable state.",
+        "description": "Sends a reminder notification to the specified participant. The approval must exist and be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "remindParticipant",
         "security": [
           {
@@ -3024,6 +3033,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
           }
         },
         "requestBody": {
@@ -3112,6 +3124,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
           }
         },
         "requestBody": {
@@ -3183,6 +3198,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
           }
         },
         "requestBody": {
@@ -3271,6 +3289,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
           }
         },
         "requestBody": {
@@ -3978,6 +3999,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "411": {
+            "$ref": "#/components/responses/LengthRequiredResponse"
           }
         }
       }
