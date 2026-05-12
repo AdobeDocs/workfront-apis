@@ -263,6 +263,10 @@
             "type": "boolean",
             "description": "Whether the approval is currently locked. Mirrors the lock state of the active stage (a stage being manually locked sets the approval inactive)."
           },
+          "isLockOverridden": {
+            "type": "boolean",
+            "description": "Whether the approval lock was overridden by an admin."
+          },
           "decisionDate": {
             "type": "string",
             "format": "date-time",
