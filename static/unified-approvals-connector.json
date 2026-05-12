@@ -2151,7 +2151,7 @@
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+            "description": "Internal Server Error. Also returned when the approval does not exist \u2014 the service returns `{\"message\":\"Something went wrong\",\"statusCode\":500}` instead of 404 for a missing approval."
           }
         }
       }
@@ -2581,7 +2581,7 @@
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+            "description": "Internal Server Error. Also returned when the approval does not exist \u2014 the service returns `{\"message\":\"Something went wrong\",\"statusCode\":500}` instead of 404 for a missing approval."
           }
         }
       }
@@ -2888,7 +2888,7 @@
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+            "description": "Internal Server Error. Also returned when the approval does not exist \u2014 the service returns `{\"message\":\"Something went wrong\",\"statusCode\":500}` instead of 404 for a missing approval."
           }
         }
       }
@@ -3036,7 +3036,7 @@
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+            "description": "Internal Server Error. Also returned when the approval does not exist \u2014 the service returns `{\"message\":\"Something went wrong\",\"statusCode\":500}` instead of 404 for a missing approval."
           }
         }
       }
@@ -3284,7 +3284,7 @@
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+            "description": "Internal Server Error. Also returned when the approval does not exist \u2014 the service returns `{\"message\":\"Something went wrong\",\"statusCode\":500}` instead of 404 for a missing approval."
           }
         }
       }
