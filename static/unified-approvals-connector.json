@@ -573,6 +573,7 @@
           "status": {
             "type": "string",
             "enum": [
+              "not started",
               "notified",
               "opened",
               "commented",
@@ -581,7 +582,7 @@
               "needs work",
               "reviewed"
             ],
-            "description": "Lifecycle status of this participant on the stage.\n\n- `notified` \u2014 Participant has been sent a notification but has not yet opened or decided.\n- `opened` \u2014 Participant has opened the review but has not yet decided.\n- `commented` \u2014 Participant has left a comment but has not made a final decision.\n- `approved` \u2014 Participant has approved.\n- `approved with changes` \u2014 Participant has approved with changes requested.\n- `needs work` \u2014 Participant returned needs work.\n- `reviewed` \u2014 Participant has marked the review complete (reviewer role only)."
+            "description": "Lifecycle status of this participant on the stage.\n\n- `notified` \u2014 Participant has been sent a notification but has not yet opened or decided.\n- `opened` \u2014 Participant has opened the review but has not yet decided.\n- `commented` \u2014 Participant has left a comment but has not made a final decision.\n- `approved` \u2014 Participant has approved.\n- `approved with changes` \u2014 Participant has approved with changes requested.\n- `needs work` \u2014 Participant returned needs work.\n- `reviewed` \u2014 Participant has marked the review complete (reviewer role only).\n- `not started` \u2014 Participant is on a stage that has not yet become active; no notification has been sent."
           },
           "activities": {
             "type": "array",
