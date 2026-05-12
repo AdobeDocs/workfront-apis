@@ -541,10 +541,6 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
-          },
-          "pathId": {
-            "type": "string",
-            "description": "ID of the path this stage belongs to. Present when the approval uses paths."
           }
         }
       },
@@ -765,10 +761,6 @@
             "items": {
               "$ref": "#/components/schemas/StageTrigger"
             }
-          },
-          "pathId": {
-            "type": "string",
-            "description": "ID of the path this structure node belongs to. Present when the approval uses paths."
           }
         }
       },
@@ -859,10 +851,6 @@
             "type": "string",
             "maxLength": 500,
             "description": "Optional message for participants when this stage activates"
-          },
-          "pathId": {
-            "type": "string",
-            "description": "Path this stage belongs to. Only relevant when creating or updating with `paths`."
           }
         }
       },
@@ -1810,89 +1798,6 @@
           }
         }
       },
-      "ApprovalPathCreate": {
-        "type": "object",
-        "description": "A path grouping stages together for a parallel or branching approval flow. Used in create requests.",
-        "required": [
-          "stages"
-        ],
-        "properties": {
-          "pathId": {
-            "type": "string",
-            "description": "Optional identifier for the path. Auto-generated if omitted."
-          },
-          "name": {
-            "type": "string",
-            "description": "Display name for the path"
-          },
-          "stages": {
-            "type": "array",
-            "minItems": 1,
-            "description": "Stages belonging to this path. Each item follows the `StageBody` shape.",
-            "items": {
-              "$ref": "#/components/schemas/StageBody"
-            }
-          }
-        }
-      },
-      "ApprovalPathUpdate": {
-        "type": "object",
-        "description": "A path grouping stages together for a parallel or branching approval flow. Used in update (PUT) requests. `pathId` is required to identify the path being updated.",
-        "required": [
-          "pathId",
-          "stages"
-        ],
-        "properties": {
-          "pathId": {
-            "type": "string",
-            "description": "Identifier of the path to update"
-          },
-          "name": {
-            "type": "string",
-            "description": "Display name for the path"
-          },
-          "stages": {
-            "type": "array",
-            "minItems": 1,
-            "description": "Stages belonging to this path. Each item follows the `StageBody` shape.",
-            "items": {
-              "$ref": "#/components/schemas/StageBody"
-            }
-          }
-        }
-      },
-      "ApprovalPath": {
-        "type": "object",
-        "description": "A path in the approval response \u2014 a named group of stages that run in parallel with other paths.",
-        "properties": {
-          "pathId": {
-            "type": "string",
-            "description": "Unique identifier for this path"
-          },
-          "name": {
-            "type": "string",
-            "description": "Display name of the path"
-          },
-          "status": {
-            "type": "string",
-            "description": "Aggregate status of the path"
-          },
-          "stages": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApprovalStage"
-            },
-            "description": "Stages belonging to this path"
-          },
-          "structure": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/ApprovalStructure"
-            },
-            "description": "Stage dependency graph for this path"
-          }
-        }
-      },
       "PartialApproval": {
         "type": "object",
         "description": "Returned by GET approval when no approval exists for the asset yet. Contains only the contextual fields that can be computed without an approval record.",
@@ -2480,27 +2385,10 @@
                     "items": {
                       "$ref": "#/components/schemas/StageBody"
                     }
-                  },
-                  "paths": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Parallel paths to update. Either `stages` or `paths` must be provided.",
-                    "items": {
-                      "$ref": "#/components/schemas/ApprovalPathUpdate"
-                    }
                   }
                 },
-                "anyOf": [
-                  {
-                    "required": [
-                      "stages"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "paths"
-                    ]
-                  }
+                "required": [
+                  "stages"
                 ]
               }
             }
