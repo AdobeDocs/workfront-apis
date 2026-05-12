@@ -2456,6 +2456,18 @@
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
           }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Send an empty JSON object. The service returns HTTP 411 if no body is provided.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
         }
       }
     },
@@ -2504,6 +2516,18 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Send an empty JSON object. The service returns HTTP 411 if no body is provided.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
           }
         }
       }
@@ -3091,7 +3115,7 @@
           }
         },
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -3099,7 +3123,8 @@
                 "properties": {}
               }
             }
-          }
+          },
+          "description": "Send an empty JSON object at minimum. The service returns HTTP 411 if no body is provided."
         }
       }
     },
@@ -3249,7 +3274,7 @@
           }
         },
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -3257,7 +3282,8 @@
                 "properties": {}
               }
             }
-          }
+          },
+          "description": "Send an empty JSON object at minimum. The service returns HTTP 411 if no body is provided."
         }
       }
     },
@@ -3371,7 +3397,7 @@
           "Templates"
         ],
         "summary": "Get template",
-        "description": "Returns a single approval template by ID.",
+        "description": "Returns a single approval template by ID.\n\n> **Known issue:** When the template ID does not exist, the service currently returns HTTP 500 instead of 404.",
         "operationId": "getTemplate",
         "security": [
           {
@@ -3572,7 +3598,7 @@
           "Templates"
         ],
         "summary": "Bulk delete templates",
-        "description": "Deletes multiple approval templates in one call. IDs are comma-separated in the path. Requires template management permissions.",
+        "description": "Deletes multiple approval templates in one call. IDs are comma-separated in the path. Requires template management permissions.\n\n> **Known issue:** When none of the supplied IDs exist, the service currently returns HTTP 500 instead of `200 {\"acknowledged\":true,\"deletedCount\":0}`.",
         "operationId": "bulkDeleteTemplates",
         "security": [
           {
@@ -3899,7 +3925,7 @@
           }
         ],
         "requestBody": {
-          "required": false,
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
@@ -3922,7 +3948,8 @@
                 }
               }
             }
-          }
+          },
+          "description": "Send an empty JSON object at minimum. The service returns HTTP 411 if no body is provided."
         },
         "responses": {
           "200": {
