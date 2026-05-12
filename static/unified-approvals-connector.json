@@ -3867,7 +3867,7 @@
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
-            "description": "Internal Server Error. Also returned when the template ID does not exist \u2014 the service currently returns 500 instead of 404 for unrecognised IDs."
+            "description": "Internal Server Error. Also returned when the template ID does not exist \u2014 the service currently returns 500 instead of 404 for unrecognized IDs."
           }
         }
       },
@@ -4146,7 +4146,7 @@
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "500": {
-            "description": "Internal Server Error. Also returned when none of the supplied IDs exist or are recognised \u2014 the service does not treat unrecognised IDs as a no-op in this case."
+            "description": "Internal Server Error. Also returned when none of the supplied IDs exist or are recognized \u2014 the service does not treat unrecognized IDs as a no-op in this case."
           }
         }
       }
