@@ -60,6 +60,14 @@
       "Destination": "/workfront-apis/api/approvals/unified-approvals"
     },
     {
+      "Source": "/workfront-apis/api/approvals/unified-approvals-connector",
+      "Destination": "/workfront-apis/api/approvals/unified-approvals"
+    },
+    {
+      "Source": "/workfront-apis/api/approvals/unified-approvals-connector/",
+      "Destination": "/workfront-apis/api/approvals/unified-approvals"
+    },
+    {
       "Source": "/workfront-apis/api/approvals",
       "Destination": "/workfront-apis/api/approvals/"
     },

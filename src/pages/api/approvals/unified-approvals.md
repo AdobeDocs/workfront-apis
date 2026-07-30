@@ -4,4 +4,4 @@ description: Unified Approvals API instructions
 layout: none
 ---
 
-<RedoclyAPIBlock src="/workfront-apis/unified-approvals.json"/>
+<RedoclyAPIBlock src="/workfront-apis/unified-approvals-connector.json"/>
