@@ -28,14 +28,14 @@
       "lastUpdated": "4/26/2026"
     },
     {
-      "page": "/api/approvals/unified-approvals",
+      "page": "/api/approvals/unified-approvals-deprecated",
       "avatars": [
         "https://avatars.githubusercontent.com/u/14320591?v=4"
       ],
       "lastUpdated": "2/20/2026"
     },
     {
-      "page": "/api/approvals/unified-approvals-connector",
+      "page": "/api/approvals/unified-approvals",
       "avatars": [
         "https://avatars.githubusercontent.com/u/38778115?v=4"
       ],
