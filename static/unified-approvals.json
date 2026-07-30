@@ -1,7 +1,7 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Unified Approvals",
+    "title": "Unified Approvals API (Deprecated)",
     "version": "1.0",
     "description": "The Unified Approvals public API endpoints allow you to create and manage approval records along with making decisions on those records.\n\nAuthentication is done through credentials obtained through the Adobe Developer Console. Currently, there is no ability to act on behalf of another user. This means if you are authenticating with a technical account, you will only be able to act as that technical account. For example, if you try to have the technical account make a decision on an approval that they are not a participant on, the API call will fail with a 404 saying they are not a participant. A user token for the actual participant on the approval would have to be used to authenticate to the API endpoint instead.\n\nThese endpoints only support single-stage approvals. They will not work with multi-stage approvals.\n\n### API Paths\n- **Gateway URL**: `https://workfront.adobe.io`\n- **Base Path**: `/unified-approvals`\n- **Example URL**: `https://workfront.adobe.io/unified-approvals/public/api/v1/approvals/test/123`",
     "contact": {
