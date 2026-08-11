@@ -309,6 +309,13 @@
             },
             "description": "Stage dependency graph. Each entry maps a `stageId` to its `parentIds`, defining the order in which stages activate."
           },
+          "paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalPath"
+            },
+            "description": "Parallel approval paths on this approval. Each path has its own `stages` and `structure`, allowing independent stage sequences to run side by side. Empty for single-path approvals."
+          },
           "userInfo": {
             "type": "object",
             "description": "Contextual information about the authenticated user's relationship to this approval",
@@ -402,6 +409,7 @@
               "parentIds": []
             }
           ],
+          "paths": [],
           "userInfo": {
             "isEditable": true,
             "hasLicenseAccess": true,
@@ -761,6 +769,49 @@
             "items": {
               "$ref": "#/components/schemas/StageTrigger"
             }
+          }
+        }
+      },
+      "ApprovalPath": {
+        "type": "object",
+        "description": "One parallel path on an approval that has multiple independent stage sequences. Each path carries its own `stages` and `structure`, scoped the same way as the top-level fields of the same name on `Approval`.",
+        "properties": {
+          "pathId": {
+            "type": "string",
+            "example": "design-path",
+            "description": "Identifier for this path. Must be unique across all paths on the approval."
+          },
+          "name": {
+            "type": "string",
+            "example": "Design Path",
+            "description": "Display name for this path."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not started",
+              "pending review",
+              "in review",
+              "approved",
+              "approved with changes",
+              "needs work",
+              "reviewed"
+            ],
+            "description": "Rollup status of this path, derived the same way as the approval-level `status` but scoped to this path's stages."
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStage"
+            },
+            "description": "Ordered list of stages on this path."
+          },
+          "structure": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStructure"
+            },
+            "description": "Stage dependency graph for this path. Each entry maps a `stageId` to its `parentIds`, defining the order in which this path's stages activate."
           }
         }
       },
