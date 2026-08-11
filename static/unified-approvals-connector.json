@@ -902,6 +902,65 @@
             "type": "string",
             "maxLength": 500,
             "description": "Optional message for participants when this stage activates"
+          },
+          "pathId": {
+            "type": "string",
+            "example": "design-path",
+            "description": "ID of the path this stage belongs to, when the stage is part of a multi-path approval."
+          }
+        }
+      },
+      "ApprovalPathCreate": {
+        "type": "object",
+        "description": "One parallel path used when creating a multi-path approval.",
+        "required": [
+          "stages"
+        ],
+        "properties": {
+          "pathId": {
+            "type": "string",
+            "example": "design-path",
+            "description": "Identifier for this path. Must be unique across all paths on the approval."
+          },
+          "name": {
+            "type": "string",
+            "example": "Design Path",
+            "description": "Display name for this path."
+          },
+          "stages": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Stage definitions for this path.",
+            "items": {
+              "$ref": "#/components/schemas/StageBody"
+            }
+          }
+        }
+      },
+      "ApprovalPathUpdate": {
+        "type": "object",
+        "description": "One parallel path used when replacing all stages on an existing multi-path approval.",
+        "required": [
+          "stages"
+        ],
+        "properties": {
+          "pathId": {
+            "type": "string",
+            "example": "design-path",
+            "description": "Identifier for this path. Must be unique across all paths on the approval."
+          },
+          "name": {
+            "type": "string",
+            "example": "Design Path",
+            "description": "Display name for this path."
+          },
+          "stages": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Replacement stage definitions for this path.",
+            "items": {
+              "$ref": "#/components/schemas/StageBody"
+            }
           }
         }
       },
@@ -2195,9 +2254,17 @@
                   "stages": {
                     "type": "array",
                     "minItems": 1,
-                    "description": "Stage definitions used to build the approval. The server uses this array as-is \u2014 it does not look up or expand any referenced template. To create an approval from a template, the caller must fetch the template independently (`GET /api/v1/templates/{templateId}`), copy its `stages` into this array, and optionally pass the same `templateId` to record the source on the approval and increment its usage counter.",
+                    "description": "Stage definitions used to build a single-path approval. The server uses this array as-is \u2014 it does not look up or expand any referenced template. To create an approval from a template, the caller must fetch the template independently (`GET /api/v1/templates/{templateId}`), copy its `stages` into this array, and optionally pass the same `templateId` to record the source on the approval and increment its usage counter. Mutually exclusive with `paths` \u2014 provide one or the other.",
                     "items": {
                       "$ref": "#/components/schemas/StageBody"
+                    }
+                  },
+                  "paths": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Path definitions used to build a multi-path approval, each with its own `stages`. Mutually exclusive with the top-level `stages` \u2014 provide one or the other.",
+                    "items": {
+                      "$ref": "#/components/schemas/ApprovalPathCreate"
                     }
                   },
                   "templateId": {
@@ -2205,8 +2272,17 @@
                     "description": "ID of the template used to create this approval, if any. Recorded on the approval for traceability and used to increment the template's `usageCount` and refresh `lastUsedOnDate`. The server does **not** load stages from the template \u2014 the caller must fetch the template via `GET /api/v1/templates/{templateId}` and copy its stages into the `stages` array."
                   }
                 },
-                "required": [
-                  "stages"
+                "anyOf": [
+                  {
+                    "required": [
+                      "stages"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "paths"
+                    ]
+                  }
                 ]
               }
             }
@@ -2430,8 +2506,17 @@
                   "stages": {
                     "type": "array",
                     "minItems": 1,
+                    "description": "Stage definitions used to build a single-path approval. Mutually exclusive with `paths` — provide one or the other.",
                     "items": {
                       "$ref": "#/components/schemas/StageBody"
+                    }
+                  },
+                  "paths": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Path definitions used to build a multi-path approval, each with its own `stages`. Mutually exclusive with the top-level `stages` — provide one or the other.",
+                    "items": {
+                      "$ref": "#/components/schemas/ApprovalPathCreate"
                     }
                   },
                   "templateId": {
@@ -2439,8 +2524,17 @@
                     "description": "ID of the template used to create this approval, if any."
                   }
                 },
-                "required": [
-                  "stages"
+                "anyOf": [
+                  {
+                    "required": [
+                      "stages"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "paths"
+                    ]
+                  }
                 ]
               }
             }
@@ -2511,13 +2605,31 @@
                 "properties": {
                   "stages": {
                     "type": "array",
+                    "description": "Replacement stage definitions for a single-path approval. Mutually exclusive with `paths` — provide one or the other.",
                     "items": {
                       "$ref": "#/components/schemas/StageBody"
                     }
+                  },
+                  "paths": {
+                    "type": "array",
+                    "minItems": 1,
+                    "description": "Replacement path definitions for a multi-path approval, each with its own `stages`. Mutually exclusive with the top-level `stages` — provide one or the other.",
+                    "items": {
+                      "$ref": "#/components/schemas/ApprovalPathUpdate"
+                    }
                   }
                 },
-                "required": [
-                  "stages"
+                "anyOf": [
+                  {
+                    "required": [
+                      "stages"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "paths"
+                    ]
+                  }
                 ]
               }
             }
