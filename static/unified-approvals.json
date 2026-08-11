@@ -356,6 +356,41 @@
                 }
               }
             }
+          },
+          "paths": {
+            "type": "array",
+            "description": "Parallel approval paths on this approval. Always empty for these endpoints since they only support single-stage approvals.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pathId": {
+                  "type": "string",
+                  "description": "Path identifier"
+                },
+                "name": {
+                  "type": "string",
+                  "description": "Display name for the path"
+                },
+                "status": {
+                  "type": "string",
+                  "description": "Rollup status of the path"
+                },
+                "stages": {
+                  "type": "array",
+                  "description": "Stages on this path",
+                  "items": {
+                    "type": "object"
+                  }
+                },
+                "structure": {
+                  "type": "array",
+                  "description": "Stage structure and dependencies for this path",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
           }
         }
       }
