@@ -1003,6 +1003,13 @@
             },
             "description": "Workflow structure defining stage ordering and trigger dependencies."
           },
+          "paths": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplatePath"
+            },
+            "description": "Parallel paths on this template. Each path has its own `stages` and `structure`, allowing independent stage sequences to run side by side. Empty for single-path templates."
+          },
           "sharedWith": {
             "type": "array",
             "items": {
@@ -1103,6 +1110,7 @@
               ]
             }
           ],
+          "paths": [],
           "usageCount": 0,
           "createdAt": "2026-01-15T17:00:00.000Z",
           "updatedAt": "2026-01-15T17:00:00.000Z"
@@ -1150,6 +1158,36 @@
               "hours": 17,
               "minutes": 0
             }
+          }
+        }
+      },
+      "TemplatePath": {
+        "type": "object",
+        "description": "One parallel path on a template that has multiple independent stage sequences. Each path carries its own `stages` and `structure`, scoped the same way as the top-level fields of the same name on `Template`.",
+        "properties": {
+          "pathId": {
+            "type": "string",
+            "example": "design-path",
+            "description": "Identifier for this path. Must be unique across all paths on the template."
+          },
+          "name": {
+            "type": "string",
+            "example": "Design Path",
+            "description": "Display name for this path."
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplateStage"
+            },
+            "description": "Stages on this path."
+          },
+          "structure": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApprovalStructure"
+            },
+            "description": "Stage dependency graph for this path. Each entry maps a `stageId` to its `parentIds`, defining the order in which this path's stages activate."
           }
         }
       },
@@ -1242,97 +1280,14 @@
             "minItems": 1,
             "description": "Stages that make up the template, in graph form.",
             "items": {
-              "type": "object",
-              "required": [
-                "stageId",
-                "name"
-              ],
-              "properties": {
-                "stageId": {
-                  "type": "string",
-                  "example": "design-review",
-                  "description": "Identifier for this template stage. Must be unique across all stages within the template (e.g. `design-review`)."
-                },
-                "name": {
-                  "type": "string"
-                },
-                "parentIds": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "IDs of stages that must complete before this stage activates."
-                },
-                "triggers": {
-                  "type": "array",
-                  "description": "Activation triggers for the stage. Each entry defines when and how the stage becomes active relative to other stages on the template.",
-                  "items": {
-                    "$ref": "#/components/schemas/StageTrigger"
-                  }
-                },
-                "deadlineBusinessDays": {
-                  "type": "integer",
-                  "description": "Number of business days from stage activation to its deadline."
-                },
-                "deadlineTimeOfDay": {
-                  "type": "object",
-                  "nullable": true,
-                  "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
-                  "properties": {
-                    "hours": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 23,
-                      "description": "Hour of the day (0\u201323)."
-                    },
-                    "minutes": {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 59,
-                      "description": "Minute of the hour (0\u201359)."
-                    }
-                  },
-                  "example": {
-                    "hours": 17,
-                    "minutes": 0
-                  }
-                },
-                "participants": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "required": [
-                      "participantId",
-                      "participantType",
-                      "participantRole"
-                    ],
-                    "properties": {
-                      "participantId": {
-                        "type": "string"
-                      },
-                      "participantType": {
-                        "type": "string",
-                        "enum": [
-                          "USER",
-                          "TEAMOB"
-                        ],
-                        "description": "Type of participant.\n\n- `USER` \u2014 Individual Workfront user (or AI bot user).\n- `TEAMOB` \u2014 Workfront team."
-                      },
-                      "participantRole": {
-                        "type": "string",
-                        "enum": [
-                          "approver",
-                          "reviewer"
-                        ],
-                        "description": "Role this participant plays on the stage.\n\n- `approver` \u2014 Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` \u2014 Non-binding; can mark reviewed but does not block approval progression."
-                      },
-                      "participantMetadata": {
-                        "$ref": "#/components/schemas/ParticipantMetadata"
-                      }
-                    }
-                  }
-                }
-              }
+              "$ref": "#/components/schemas/TemplateStageBody"
+            }
+          },
+          "paths": {
+            "type": "array",
+            "description": "Parallel paths that make up the template, each with its own stages in graph form. Omit for single-path templates.",
+            "items": {
+              "$ref": "#/components/schemas/TemplatePathBody"
             }
           },
           "sharedWith": {
@@ -1417,7 +1372,130 @@
                 }
               ]
             }
-          ]
+          ],
+          "paths": []
+        }
+      },
+      "TemplateStageBody": {
+        "type": "object",
+        "description": "A single stage in graph form, used when creating or updating a template (either directly under `stages`, or nested under one of `paths[].stages`).",
+        "required": [
+          "stageId",
+          "name"
+        ],
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "example": "design-review",
+            "description": "Identifier for this template stage. Must be unique across all stages within the template (e.g. `design-review`)."
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs of stages that must complete before this stage activates."
+          },
+          "triggers": {
+            "type": "array",
+            "description": "Activation triggers for the stage. Each entry defines when and how the stage becomes active relative to other stages on the template.",
+            "items": {
+              "$ref": "#/components/schemas/StageTrigger"
+            }
+          },
+          "deadlineBusinessDays": {
+            "type": "integer",
+            "description": "Number of business days from stage activation to its deadline."
+          },
+          "deadlineTimeOfDay": {
+            "type": "object",
+            "nullable": true,
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties — `hours` (0–23) and `minutes` (0–59) — that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
+            "properties": {
+              "hours": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23,
+                "description": "Hour of the day (0–23)."
+              },
+              "minutes": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59,
+                "description": "Minute of the hour (0–59)."
+              }
+            },
+            "example": {
+              "hours": 17,
+              "minutes": 0
+            }
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "participantId",
+                "participantType",
+                "participantRole"
+              ],
+              "properties": {
+                "participantId": {
+                  "type": "string"
+                },
+                "participantType": {
+                  "type": "string",
+                  "enum": [
+                    "USER",
+                    "TEAMOB"
+                  ],
+                  "description": "Type of participant.\n\n- `USER` — Individual Workfront user (or AI bot user).\n- `TEAMOB` — Workfront team."
+                },
+                "participantRole": {
+                  "type": "string",
+                  "enum": [
+                    "approver",
+                    "reviewer"
+                  ],
+                  "description": "Role this participant plays on the stage.\n\n- `approver` — Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` — Non-binding; can mark reviewed but does not block approval progression."
+                },
+                "participantMetadata": {
+                  "$ref": "#/components/schemas/ParticipantMetadata"
+                }
+              }
+            }
+          }
+        }
+      },
+      "TemplatePathBody": {
+        "type": "object",
+        "description": "One parallel path in graph form, used when creating or updating a multi-path template.",
+        "required": [
+          "pathId",
+          "stages"
+        ],
+        "properties": {
+          "pathId": {
+            "type": "string",
+            "example": "design-path",
+            "description": "Identifier for this path. Must be unique across all paths on the template."
+          },
+          "name": {
+            "type": "string",
+            "example": "Design Path",
+            "description": "Display name for this path."
+          },
+          "stages": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Stages that make up this path, in graph form.",
+            "items": {
+              "$ref": "#/components/schemas/TemplateStageBody"
+            }
+          }
         }
       },
       "ErrorResponse": {
