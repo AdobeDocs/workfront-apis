@@ -445,6 +445,11 @@
             "example": "design-review",
             "description": "Identifier for this stage. Must be unique across all stages on the approval. Can be a short, human-readable slug (e.g. `design-review`)."
           },
+          "pathId": {
+            "type": "string",
+            "example": "design-path",
+            "description": "ID of the path this stage belongs to, when the stage is part of a multi-path approval."
+          },
           "name": {
             "type": "string"
           },
@@ -699,8 +704,7 @@
         "type": "object",
         "required": [
           "type",
-          "when",
-          "parameters"
+          "when"
         ],
         "description": "Defines when and how a stage is automatically activated",
         "properties": {
@@ -741,10 +745,6 @@
                   ]
                 },
                 "description": "Decisions that count as 'complete' for this trigger"
-              },
-              "activateOnDecision": {
-                "type": "integer",
-                "description": "Number of qualifying decisions on the parent stages that must be reached before the stage activates. Combined with `allowedDecisions` to define which decisions count toward the threshold. Defaults to all required decisions on the listed stages."
               }
             }
           }
@@ -837,6 +837,10 @@
         ],
         "description": "Stage definition used when creating or updating an approval",
         "properties": {
+          "stageId": {
+            "type": "string",
+            "description": "Optional client-assigned identifier for this stage, unique within the approval. If omitted, the server generates one. Use human-readable values (e.g. \"legal-review\") when referencing this stage in another stage's parentIds for sequential approval flows."
+          },
           "name": {
             "type": "string"
           },
@@ -1175,7 +1179,6 @@
                     "stages": [
                       "stage-1"
                     ],
-                    "activateOnDecision": 2,
                     "allowedDecisions": [
                       "approved"
                     ]
@@ -1425,7 +1428,6 @@
                     "stages": [
                       "stage-1"
                     ],
-                    "activateOnDecision": 2,
                     "allowedDecisions": [
                       "approved"
                     ]
@@ -2063,16 +2065,42 @@
       },
       "TemplateDeleteResult": {
         "type": "object",
+        "description": "Result of a bulk template delete.",
         "properties": {
-          "acknowledged": {
-            "type": "boolean",
-            "description": "Whether the delete operation was acknowledged by the database.",
-            "example": true
+          "deleted": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Template IDs that were successfully deleted."
           },
-          "deleteCount": {
-            "type": "integer",
-            "description": "Number of templates deleted. `0` when the template ID was not found; `1` when successfully deleted.",
-            "example": 1
+          "failed": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Template IDs that were not deleted (e.g. a permission denial or an AAS delete failure)."
+          },
+          "errors": {
+            "type": "array",
+            "description": "Per-ID error details for IDs not deleted due to an upstream problem (e.g. an AuthZ failure) — distinct from a permission denial in `failed`.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                },
+                "retryable": {
+                  "type": "boolean"
+                }
+              }
+            }
           }
         }
       },
@@ -2085,6 +2113,7 @@
         "properties": {
           "id": {
             "type": "string",
+            "pattern": "^[a-fA-F0-9]{32}$",
             "description": "Workfront user or team ID."
           },
           "type": {
@@ -2129,7 +2158,8 @@
         "properties": {
           "stageId": {
             "type": "string",
-            "description": "Client-assigned stage identifier, unique within its path."
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "description": "Client-assigned stage identifier, unique across all paths in the approval (not just within its own path)."
           },
           "name": {
             "type": "string",
@@ -2197,6 +2227,7 @@
         "properties": {
           "pathId": {
             "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
             "description": "Client-assigned path identifier (used on updates to match an existing path)."
           },
           "name": {
@@ -2333,6 +2364,7 @@
               "properties": {
                 "stageId": {
                   "type": "string",
+                  "pattern": "^[A-Za-z0-9_-]{1,64}$",
                   "description": "stageId of the stage to remove."
                 }
               }
@@ -2354,10 +2386,12 @@
         "properties": {
           "stageId": {
             "type": "string",
-            "description": "Client-assigned stage identifier, unique within its path."
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "description": "Client-assigned stage identifier, unique across all paths in the approval (not just within its own path)."
           },
           "pathId": {
             "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
             "description": "The path this stage is added to."
           },
           "name": {
@@ -2394,7 +2428,8 @@
         "description": "Changes to an existing stage, identified by stageId. Note: pathId, parentIds and participants cannot be changed here - use the stage participants endpoint to change participants.",
         "properties": {
           "stageId": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$"
           },
           "name": {
             "type": "string",
@@ -2456,6 +2491,7 @@
         "properties": {
           "id": {
             "type": "string",
+            "pattern": "^[a-fA-F0-9]{32}$",
             "description": "Workfront user or team ID."
           },
           "type": {
@@ -2490,7 +2526,8 @@
         "description": "Update an existing participant. Supply at least one of role or participantMetadata. Note that participantMetadata here is an add/update/remove operations object, not a flat map.",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{32}$"
           },
           "type": {
             "type": "string",
@@ -2539,7 +2576,8 @@
         "description": "A participant to remove, identified by id.",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{32}$"
           },
           "type": {
             "type": "string",
@@ -2900,7 +2938,7 @@
         "type": "object",
         "description": "A path in the grouped approval: an ordered set of stages, with rolled-up status and decision progress.",
         "properties": {
-          "id": {
+          "pathId": {
             "type": "string",
             "description": "The id for the path.",
             "example": "primary"
@@ -4837,6 +4875,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "decision"
+                ],
                 "properties": {
                   "decision": {
                     "type": "string",
@@ -6166,7 +6207,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Delete operation acknowledged. Check `deleteCount` to determine whether the template existed: `1` means deleted, `0` means no template with that ID was found.",
+            "description": "Delete operation acknowledged. Check the `deleted`/`failed`/`errors` arrays to see which of the requested IDs were removed.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6179,7 +6220,7 @@
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "500": {
-            "description": "Returned when one or more supplied IDs are not valid MongoDB ObjectId format strings. Valid-format IDs that do not match any template return 200 with deletedCount: 0."
+            "description": "Returned when one or more supplied IDs are not valid MongoDB ObjectId format strings. An ID that fails the permission check is not an error — it is returned in the 200 response's `failed` array instead. Note: a valid-format ID that passes the permission check but does not match any template is reported in `deleted`, since the upstream delete does not report per-ID outcomes."
           }
         }
       }
