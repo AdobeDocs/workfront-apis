@@ -740,7 +740,6 @@
                   "enum": [
                     "approved",
                     "approved with changes",
-                    "needs work",
                     "reviewed"
                   ]
                 },
