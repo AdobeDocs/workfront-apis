@@ -2266,7 +2266,7 @@
           },
           "templateId": {
             "type": "string",
-            "description": "Optional approval-template ID to seed the workflow from."
+            "description": "Optional ID of an existing approval template. It is recorded on the grouped approval and counted toward the template's usage; stages are **not** copied from the template, so `paths` is still required. An unknown ID returns `404`."
           },
           "assets": {
             "type": "array",
@@ -6937,7 +6937,7 @@
         ],
         "summary": "Create grouped approval",
         "operationId": "createGroupedApproval",
-        "description": "Creates a grouped approval: a set of document versions that move together through one or more approval paths, each an ordered sequence of stages with its own participants. Optionally associate it with a Workfront parent object via `parentId`/`objCode`, or seed it from a `templateId`.",
+        "description": "Creates a grouped approval: a set of document versions that move together through one or more approval paths, each an ordered sequence of stages with its own participants. Optionally associate it with a Workfront parent object via `parentId`/`objCode`, or record an existing approval template with `templateId` (the template is not used to build the stages).",
         "security": [
           {
             "Bearer": []
