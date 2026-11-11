@@ -1812,7 +1812,7 @@
             }
           },
           "frameSyncStatus": {
-            "type": "string",
+            "type": "boolean",
             "nullable": true
           },
           "isEsmAsset": {
@@ -2008,16 +2008,16 @@
         "properties": {
           "isApprovalActive": {
             "type": "boolean",
-            "description": "Always `true` in this partial shape \u2014 no active approval exists but the asset is eligible."
+            "description": "Whether the requested asset is the current version of the document. `false` when the asset is not the current version."
           },
           "isEsmAsset": {
             "type": "boolean",
             "description": "Whether the asset is stored in external storage (ESM)."
           },
           "frameSyncStatus": {
-            "type": "string",
+            "type": "boolean",
             "nullable": true,
-            "description": "Frame sync status for the asset. `null` when no approval exists."
+            "description": "Whether the asset has finished syncing to Frame. `null` when there is no sync record for the asset."
           },
           "userInfo": {
             "type": "object",
@@ -2052,9 +2052,9 @@
             "description": "The asset ID that was queried."
           },
           "frameSyncStatus": {
-            "type": "string",
+            "type": "boolean",
             "nullable": true,
-            "description": "Always `null` when no approval exists."
+            "description": "Whether the asset has finished syncing to Frame. `null` when there is no sync record for the asset."
           }
         },
         "example": {
