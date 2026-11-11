@@ -7331,6 +7331,120 @@
         }
       }
     },
+    "/api/v1/grouped-approvals/{groupGuid}/name": {
+      "patch": {
+        "tags": [
+          "Grouped Approvals"
+        ],
+        "summary": "Rename a grouped approval",
+        "operationId": "updateGroupedApprovalName",
+        "description": "Renames the grouped approval. Only the group-level name changes: paths, stages and assets are not touched, and the rename works even when stages are locked or already decided. Sending the current name again is a no-op. Names are not required to be unique.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/GroupGuid"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "description": "The new name of the grouped approval."
+                  }
+                },
+                "example": {
+                  "name": "Q4 Campaign Assets"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "groupedApprovalGuid": {
+                      "type": "string",
+                      "description": "GUID of the renamed grouped approval."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The grouped approval's name after the rename."
+                    }
+                  },
+                  "example": {
+                    "groupedApprovalGuid": "9f8b60820000462ecf66c409d1248fa9",
+                    "name": "Q4 Campaign Assets"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "403": {
+            "description": "Grouped approvals are not enabled for this tenant (`response.code` is `GROUPED_APPROVALS_DISABLED`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
     "/api/v1/grouped-approvals/{groupGuid}/stages": {
       "patch": {
         "tags": [
