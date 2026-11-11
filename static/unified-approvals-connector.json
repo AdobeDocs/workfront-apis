@@ -5475,7 +5475,7 @@
           "Participants"
         ],
         "summary": "Add participants",
-        "description": "Adds one or more participants to an approval. If the approval does not yet exist, one will be created. If a participant already exists they will be merged and updated. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Adds one or more participants to an existing approval; returns `404` if the approval does not exist (create it first with `POST .../stages`). If a participant already exists they will be merged and updated. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
         "operationId": "addParticipants",
         "security": [
           {
