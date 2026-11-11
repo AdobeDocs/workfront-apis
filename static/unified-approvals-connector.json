@@ -6382,8 +6382,8 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Template deleted successfully."
+          "204": {
+            "description": "Template deleted successfully. No response body."
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
