@@ -1575,16 +1575,13 @@
           "message": {
             "type": "string"
           },
-          "errors": {
-            "type": "array",
-            "description": "Validation error details (present on 400 FST_ERR_VALIDATION errors)",
-            "items": {
-              "type": "object"
-            }
-          },
           "response": {
             "type": "object",
             "description": "Upstream service error response, if applicable"
+          },
+          "source": {
+            "type": "string",
+            "description": "Which upstream produced the error (for example `workfront` or `aas`). Only present on operations that call more than one upstream, where the HTTP status alone cannot tell you which one failed."
           }
         }
       },
