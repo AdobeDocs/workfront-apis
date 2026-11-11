@@ -2164,10 +2164,11 @@
           "participants": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 50,
             "items": {
               "$ref": "#/components/schemas/GroupedApprovalParticipantInput"
             },
-            "description": "Approvers/reviewers on this stage."
+            "description": "Approvers/reviewers on this stage. At most 50."
           },
           "deadlineDate": {
             "type": "string",
@@ -2225,9 +2226,11 @@
           "stages": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 10,
             "items": {
               "$ref": "#/components/schemas/GroupedApprovalStageInput"
-            }
+            },
+            "description": "The ordered stages of the path. At most 10."
           }
         }
       },
@@ -2260,18 +2263,20 @@
           "assets": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 25,
             "items": {
               "type": "string"
             },
-            "description": "Document version (DOCV) IDs to include in the group."
+            "description": "Document version (DOCV) IDs to include in the group. At most 25."
           },
           "paths": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 3,
             "items": {
               "$ref": "#/components/schemas/GroupedApprovalPathInput"
             },
-            "description": "One or more approval paths, each a sequence of stages."
+            "description": "One or more approval paths, each a sequence of stages. At most 3. The number of assets multiplied by the total number of stages across all paths cannot exceed 100; a larger group returns `400 GROUP_ASSET_STAGE_CAP_EXCEEDED` (for example, 25 assets allows at most 4 stages in total)."
           }
         }
       },
