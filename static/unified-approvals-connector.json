@@ -3659,11 +3659,11 @@
           "code": {
             "type": "string",
             "description": "The error code for the failed item.",
-            "example": "ASSET_ALREADY_IN_GROUP"
+            "example": "ASSET_IN_ANOTHER_GROUP"
           },
           "message": {
             "type": "string",
-            "example": "Asset already belongs to another grouped approval."
+            "example": "Asset is already part of another grouped approval."
           },
           "assetGuid": {
             "type": "string",
