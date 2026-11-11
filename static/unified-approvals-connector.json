@@ -137,10 +137,9 @@
         "name": "x-request-id",
         "in": "header",
         "required": false,
-        "description": "Unique identifier for request tracing. Auto-generated if not provided.",
+        "description": "Unique identifier for request tracing. Auto-generated if not provided. Any string is accepted; it is returned in the `x-request-id` response header.",
         "schema": {
-          "type": "string",
-          "format": "uuid"
+          "type": "string"
         }
       },
       "XCorrelationId": {
