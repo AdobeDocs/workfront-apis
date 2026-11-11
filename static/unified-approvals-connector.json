@@ -6201,8 +6201,8 @@
         "tags": [
           "Templates"
         ],
-        "summary": "Update template",
-        "description": "Partially updates an approval template. Requires template management permissions.",
+        "summary": "Replace template",
+        "description": "Replaces an approval template with the supplied body. Use `PATCH` to change only some fields. Requires template management permissions.",
         "operationId": "putTemplate",
         "security": [
           {
