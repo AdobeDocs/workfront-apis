@@ -2381,7 +2381,7 @@
           "participants"
         ],
         "additionalProperties": false,
-        "description": "A new stage to add. Participants are set at add time; per-stage deadlines, config and customMessage are set afterwards via an update operation.",
+        "description": "A new stage to add. `deadlineDate` and `customMessage` are not accepted on add and return a `400`; set `deadlineDate` afterwards with an update operation.",
         "properties": {
           "stageId": {
             "type": "string",
@@ -2412,6 +2412,27 @@
               "$ref": "#/components/schemas/GroupedApprovalParticipantInput"
             }
           },
+          "deadlineBusinessDays": {
+            "type": "number",
+            "description": "Deadline expressed as a number of business days from activation."
+          },
+          "deadlineTimeOfDay": {
+            "type": "object",
+            "description": "Time-of-day paired with deadlineBusinessDays.",
+            "properties": {
+              "hours": {
+                "type": "number"
+              },
+              "minutes": {
+                "type": "number"
+              }
+            }
+          },
+          "config": {
+            "type": "object",
+            "description": "Stage configuration options.",
+            "additionalProperties": true
+          },
           "stageMetadata": {
             "type": "object",
             "additionalProperties": true
@@ -2424,7 +2445,7 @@
           "stageId"
         ],
         "additionalProperties": false,
-        "description": "Changes to an existing stage, identified by stageId. Note: pathId, parentIds and participants cannot be changed here - use the stage participants endpoint to change participants.",
+        "description": "Changes to an existing stage, identified by stageId. Only `name` and `deadlineDate` can be changed here; sending any other stage field (`pathId`, `parentIds`, `participants`, `deadlineBusinessDays`, `deadlineTimeOfDay`, `stageMetadata`, `config` or `customMessage`) returns a `400`. Use the stage participants endpoint to change participants and the stage metadata endpoint to change `stageMetadata`.",
         "properties": {
           "stageId": {
             "type": "string",
@@ -2438,20 +2459,6 @@
           "deadlineDate": {
             "type": "string",
             "format": "date-time"
-          },
-          "deadlineBusinessDays": {
-            "type": "number"
-          },
-          "stageMetadata": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "config": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "customMessage": {
-            "type": "string"
           }
         }
       },
