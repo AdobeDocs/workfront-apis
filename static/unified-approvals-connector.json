@@ -1318,13 +1318,6 @@
           "linkTo": {
             "type": "string",
             "nullable": true
-          },
-          "teamMembers": {
-            "type": "array",
-            "description": "Members of the team. Populated only when `participantType` is `TEAMOB`.",
-            "items": {
-              "$ref": "#/components/schemas/TeamMember"
-            }
           }
         }
       },
