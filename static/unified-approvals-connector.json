@@ -3478,13 +3478,13 @@
           "cursor": {
             "type": "string",
             "nullable": true,
-            "description": "Opaque cursor for the next page (from the prior response). When a non-null cursor is sent, limit is ignored."
+            "description": "Accepted for compatibility with other views but currently has no effect: the `awaitingApprovals` view is not paginated."
           },
           "limit": {
             "type": "integer",
             "default": 20,
             "maximum": 100,
-            "description": "Page size for the first page, when no cursor is supplied. Defaults to 20, max 100."
+            "description": "Accepted for compatibility with other views but currently has no effect: the `awaitingApprovals` view returns a single bounded response."
           }
         }
       },
@@ -3494,7 +3494,7 @@
           "data",
           "cursor"
         ],
-        "description": "Cursor-paginated search results. The row shape under `data` is determined by the requested `view` (the `awaitingApprovals` view is shown in the example).",
+        "description": "Search results. The row shape under `data` is determined by the requested `view` (the `awaitingApprovals` view is shown in the example). The `awaitingApprovals` view is not paginated, so `cursor` is always `null`.",
         "properties": {
           "data": {
             "type": "array",
@@ -3507,18 +3507,18 @@
           "cursor": {
             "type": "string",
             "nullable": true,
-            "description": "Cursor for the next page of results. Null if there are no more results."
+            "description": "Always `null` for the `awaitingApprovals` view, which returns a single bounded response."
           }
         },
         "example": {
           "data": [
             {
-              "guid": "f47ac10b58cc4372a5670e02b2c3d479",
+              "groupedApprovalGuid": "f47ac10b58cc4372a5670e02b2c3d479",
               "imsOrgId": "1269195F66C8C84F0A494025@AdobeOrg",
               "customerId": "697be14f00392452aa729f7eb29059fe",
               "name": "Grouped Approval 123",
               "creator": {
-                "guid": "884313730004e310f947559b08e68b11",
+                "identityGuid": "884313730004e310f947559b08e68b11",
                 "type": "USER",
                 "references": [
                   {
@@ -3532,13 +3532,15 @@
                 ]
               },
               "createdAt": "2025-01-10T09:00:00.000Z",
+              "earliestDeadlineDate": "2025-01-16T12:00:00.000Z",
               "stages": [
                 {
                   "name": "Legal Review",
                   "stageId": "019dd8a16cb17a58a3b73fc991f16e07",
                   "deadlineDate": "2025-01-16T12:00:00.000Z",
+                  "isLocked": false,
                   "participant": {
-                    "guid": "698b60820000462ecf66c409d1248fa9",
+                    "identityGuid": "698b60820000462ecf66c409d1248fa9",
                     "type": "USER",
                     "references": [
                       {
@@ -7274,7 +7276,7 @@
         ],
         "summary": "Search grouped approvals",
         "operationId": "searchGroupedApprovals",
-        "description": "Searches grouped approvals using a named `view`. The default `awaitingApprovals` view returns groups where the requesting user (or one of the supplied `teamIds`) is a participant on the active stage and a decision is still required. Results are cursor-paginated: send `limit` for the first page, then the returned `cursor` for each subsequent page.",
+        "description": "Searches grouped approvals using a named `view`. The default `awaitingApprovals` view returns groups where the requesting user (or one of the supplied `teamIds`) is a participant on the active stage and a decision is still required. The view returns a single bounded response (up to 2000 groups) and is **not paginated**: `limit` and `cursor` are accepted but have no effect, and the response `cursor` is always `null`.",
         "security": [
           {
             "Bearer": []
