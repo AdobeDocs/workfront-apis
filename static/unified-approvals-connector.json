@@ -983,6 +983,9 @@
       },
       "ParticipantBody": {
         "type": "object",
+        "required": [
+          "participantId"
+        ],
         "description": "Participant definition used in request bodies",
         "properties": {
           "stageId": {
@@ -991,7 +994,8 @@
             "description": "ID of an existing stage on the approval to attach this participant to (e.g. `design-review`)."
           },
           "participantId": {
-            "type": "string"
+            "type": "string",
+            "description": "ID of the user or team to add. Required for every participant."
           },
           "participantType": {
             "type": "string",
