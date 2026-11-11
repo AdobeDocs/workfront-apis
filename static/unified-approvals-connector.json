@@ -2921,9 +2921,9 @@
             "description": "Stage configuration. Null when not set."
           },
           "customMessage": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
-            "additionalProperties": true,
+            "maxLength": 500,
             "description": "Custom message shown to participants on the stage. Null when not set."
           },
           "stageMetadata": {
