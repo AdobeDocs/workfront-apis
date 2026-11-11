@@ -2281,28 +2281,143 @@
         "required": [
           "paths"
         ],
-        "description": "Full-state update of a grouped approval. Submit the complete set of paths (and optionally assets); the connector reconciles them against the current state, adding/updating/removing so the group matches what you send.",
+        "description": "The complete desired state of a grouped approval. The current state is compared with what you send and the difference is applied atomically (all or nothing). Paths and stages are matched by `pathId` and `stageId`: one that matches an existing item updates it, one that does not is created, and **any existing path or stage you leave out is removed**. Send `assets` as well (see below). The order of `paths`, and of `stages` within a path, is the order the group ends up in. The group's size is also capped: the number of assets multiplied by the total number of stages across all paths cannot exceed 100, and a request that would grow the group past that returns `400 GROUP_ASSET_STAGE_CAP_EXCEEDED` (for example, 25 assets allows at most 4 stages in total).",
         "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Optional new name for the grouped approval. Omit it to keep the current name."
+          },
           "paths": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 3,
             "items": {
-              "$ref": "#/components/schemas/GroupedApprovalPathInput"
+              "$ref": "#/components/schemas/GroupedApprovalUpdatePathInput"
             },
             "description": "The complete set of approval paths for the group."
           },
           "assets": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 25,
             "items": {
               "type": "string"
             },
-            "description": "The complete set of document version (DOCV) IDs the group should contain."
+            "description": "The complete set of document version (DOCV) IDs the group should contain; assets you leave out are removed. Send this on every request: the field is currently not optional in practice, because a request that omits it fails with `409 GROUP_WOULD_BE_EMPTY`."
           },
           "idempotencyKey": {
             "type": "string",
+            "minLength": 1,
             "maxLength": 128,
-            "description": "Optional client-supplied key that makes a retried request safe (the same key will not apply the update twice)."
+            "description": "Optional key identifying one logical save. When you retry the same request with the same key, new paths and stages that have no `pathId` or `stageId` are given the same generated IDs each time, so the retry does not create duplicates. It does not otherwise deduplicate requests; without it, retrying a request that creates paths or stages without IDs can create them twice."
+          }
+        }
+      },
+      "GroupedApprovalUpdatePathInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stages"
+        ],
+        "description": "A path in a full-state update. A `pathId` that matches an existing path updates it; omitting `pathId`, or sending one that does not match, creates a new path. A new `pathId` that is already used by another path in the group (including a deleted one) returns `409 DUPLICATE_PATH_IN_GROUP`.",
+        "properties": {
+          "pathId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "description": "Path identifier. Matches an existing path, or names a new one."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the path."
+          },
+          "stages": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "$ref": "#/components/schemas/GroupedApprovalUpdateStageInput"
+            },
+            "description": "The complete, ordered set of stages for the path. Existing stages you leave out are removed."
+          }
+        }
+      },
+      "GroupedApprovalUpdateStageInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "participants"
+        ],
+        "description": "A stage in a full-state update. A `stageId` that matches an existing stage on the same path updates it; omitting `stageId`, or sending one that does not match, creates a new stage. A new `stageId` must be unique across every path in the group, otherwise the request fails with `409 STAGE_ID_CONFLICT`. For a stage that already exists, `parentIds` is ignored.\n\nOn a **new** path, send `parentIds` on every stage (an empty array for the first stage) or on none. If you send `parentIds`, every stage must also have a `stageId` so the stages can refer to each other, and a stage cannot list itself as a parent; otherwise the request fails with `400`. Triggers are derived from `parentIds` and cannot be supplied.",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "description": "Stage identifier. Matches an existing stage on this path, or names a new one."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "parentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            },
+            "description": "`stageId`s of the stages in this path that must complete before this one starts. An empty array for the first stage. Used only when the path is new."
+          },
+          "participants": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/GroupedApprovalParticipantInput"
+            },
+            "description": "Approvers/reviewers on this stage."
+          },
+          "deadlineDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Absolute deadline for the stage. `null` clears it."
+          },
+          "deadlineBusinessDays": {
+            "type": "number",
+            "description": "Deadline expressed as a number of business days from activation."
+          },
+          "deadlineTimeOfDay": {
+            "type": "object",
+            "description": "Time-of-day paired with deadlineBusinessDays.",
+            "properties": {
+              "hours": {
+                "type": "number"
+              },
+              "minutes": {
+                "type": "number"
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Stage-level metadata as string key/value pairs. Note the field is named `metadata` here, not `stageMetadata`; a `stageMetadata` property is ignored.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "config": {
+            "type": "object",
+            "description": "Stage configuration options.",
+            "additionalProperties": true
+          },
+          "customMessage": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500,
+            "description": "Optional message included in stage notifications. `null` when none."
           }
         }
       },
@@ -3563,47 +3678,12 @@
         }
       },
       "GroupedApprovalUpdateResult": {
-        "type": "object",
-        "additionalProperties": true,
-        "description": "The full resolved state of the grouped approval after the update: the same paths/assets shape as the request, with every pathId/stageId/identityGuid/assetGuid filled in for newly-created entities. Kept permissive so a legitimate upstream response is never truncated.",
-        "properties": {
-          "paths": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": true
-            }
-          },
-          "assets": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": true
-            }
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GroupedApproval"
           }
-        },
-        "example": {
-          "paths": [
-            {
-              "pathId": "primary",
-              "stages": [
-                {
-                  "stageId": "legal-review",
-                  "participants": [
-                    {
-                      "identityGuid": "698b60820000462ecf66c409d1248fa9"
-                    }
-                  ]
-                }
-              ]
-            }
-          ],
-          "assets": [
-            {
-              "assetGuid": "673fc29b0006af515e33732d1ebdc39a"
-            }
-          ]
-        }
+        ],
+        "description": "The full grouped approval as it stands after the update, in the same shape as `GET /grouped-approvals/{groupGuid}`, with an ID filled in for every path, stage, participant and asset that was created."
       },
       "GroupedApprovalAssetResult": {
         "type": "object",
@@ -3961,6 +4041,44 @@
       },
       "NotFoundResponse": {
         "description": "Not Found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ConflictResponse": {
+        "description": "Conflict \u2014 the request conflicts with the current state. The reason is in `response.code`.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "UnprocessableEntityResponse": {
+        "description": "Unprocessable Entity \u2014 a user, team or asset reference in the request could not be resolved.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ServiceUnavailableResponse": {
+        "description": "Service Unavailable \u2014 a dependency was temporarily unavailable or a concurrent write conflicted. Retry after the delay in the `Retry-After` header.",
+        "headers": {
+          "Retry-After": {
+            "description": "Number of seconds to wait before retrying.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        },
         "content": {
           "application/json": {
             "schema": {
@@ -7126,7 +7244,7 @@
         ],
         "summary": "Update grouped approval (full state)",
         "operationId": "updateGroupedApproval",
-        "description": "Applies a full-state update to a grouped approval: the submitted structure (assets, paths, stages, participants) is reconciled against the current one - adding, updating and removing so the group matches what you send.",
+        "description": "Replaces the complete desired state of a grouped approval (name, paths, stages, participants and assets) in one call. The current state is compared with the request and the difference is applied atomically: either every change is made or none are.\n\nPaths and stages are matched by `pathId` and `stageId`. One that matches updates the existing item, one that does not is created, and any existing path, stage or asset you leave out is removed. Send `assets` on every request. To change only part of a group, use the narrower operations instead: rename, assets, stages, stage participants or stage metadata.\n\nA stage that is locked cannot be changed (`409`), and the group cannot be left with no assets (`409 GROUP_WOULD_BE_EMPTY`). Use `idempotencyKey` to make a retried save safe.",
         "security": [
           {
             "Bearer": []
@@ -7185,11 +7303,30 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "description": "Grouped approvals are not enabled for this tenant (`response.code` is `GROUPED_APPROVALS_DISABLED`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
