@@ -2290,7 +2290,7 @@
         "required": [
           "paths"
         ],
-        "description": "The complete desired state of a grouped approval. The current state is compared with what you send and the difference is applied atomically (all or nothing). Paths and stages are matched by `pathId` and `stageId`: one that matches an existing item updates it, one that does not is created, and **any existing path or stage you leave out is removed**. Send `assets` as well (see below). The order of `paths`, and of `stages` within a path, is the order the group ends up in. The group's size is also capped: the number of assets multiplied by the total number of stages across all paths cannot exceed 100, and a request that would grow the group past that returns `400 GROUP_ASSET_STAGE_CAP_EXCEEDED` (for example, 25 assets allows at most 4 stages in total).",
+        "description": "The complete desired state of a grouped approval. The current state is compared with what you send and the difference is applied atomically (all or nothing). Paths and stages are matched by `pathId` and `stageId`: one that matches an existing item updates it, one that does not is created, and **any existing path or stage you leave out is removed**. `assets` is optional: send it to set the complete list of assets, or leave it out to keep the group's assets as they are. The order of `paths`, and of `stages` within a path, is the order the group ends up in. The group's size is also capped: the number of assets multiplied by the total number of stages across all paths cannot exceed 100, and a request that would grow the group past that returns `400 GROUP_ASSET_STAGE_CAP_EXCEEDED` (for example, 25 assets allows at most 4 stages in total).",
         "properties": {
           "name": {
             "type": "string",
@@ -2314,7 +2314,7 @@
             "items": {
               "type": "string"
             },
-            "description": "The complete set of document version (DOCV) IDs the group should contain; assets you leave out are removed. Send this on every request: the field is currently not optional in practice, because a request that omits it fails with `409 GROUP_WOULD_BE_EMPTY`."
+            "description": "Optional. The complete set of document version (DOCV) IDs the group should contain; assets you leave out are removed. Omit the field to leave the group's assets unchanged. The group cannot be left with no assets (`409 GROUP_WOULD_BE_EMPTY`)."
           },
           "idempotencyKey": {
             "type": "string",
@@ -7253,7 +7253,7 @@
         ],
         "summary": "Update grouped approval (full state)",
         "operationId": "updateGroupedApproval",
-        "description": "Replaces the complete desired state of a grouped approval (name, paths, stages, participants and assets) in one call. The current state is compared with the request and the difference is applied atomically: either every change is made or none are.\n\nPaths and stages are matched by `pathId` and `stageId`. One that matches updates the existing item, one that does not is created, and any existing path, stage or asset you leave out is removed. Send `assets` on every request. To change only part of a group, use the narrower operations instead: rename, assets, stages, stage participants or stage metadata.\n\nA stage that is locked cannot be changed (`409`), and the group cannot be left with no assets (`409 GROUP_WOULD_BE_EMPTY`). Use `idempotencyKey` to make a retried save safe.",
+        "description": "Replaces the complete desired state of a grouped approval (name, paths, stages, participants and assets) in one call. The current state is compared with the request and the difference is applied atomically: either every change is made or none are.\n\nPaths and stages are matched by `pathId` and `stageId`. One that matches updates the existing item, one that does not is created, and any existing path or stage you leave out is removed. Assets are only reconciled when you send `assets`: the list you send is the complete set (assets you leave out are removed), and leaving `assets` out keeps the group's assets as they are. To change only part of a group, use the narrower operations instead: rename, assets, stages, stage participants or stage metadata.\n\nA stage that is locked cannot be changed (`409`), and the group cannot be left with no assets (`409 GROUP_WOULD_BE_EMPTY`). Use `idempotencyKey` to make a retried save safe.",
         "security": [
           {
             "Bearer": []
