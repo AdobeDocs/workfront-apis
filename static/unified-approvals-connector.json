@@ -4097,7 +4097,7 @@
         }
       },
       "BadRequestResponse": {
-        "description": "Bad Request \u2014 validation failure or invalid state",
+        "description": "Bad Request \u2014 validation failure, malformed or empty JSON body, or invalid state",
         "content": {
           "application/json": {
             "schema": {
