@@ -4826,6 +4826,242 @@
         }
       }
     },
+    "/api/v1/approvals/decisions": {
+      "put": {
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Make decisions on multiple approvals",
+        "operationId": "makeBulkDecisions",
+        "description": "Records the requesting user's decision on several assets in one request. Each item names an asset and a decision; set `stageId` to decide a single stage, or omit it to apply the decision to all of the asset's eligible active stages. Items are processed independently and the response contains one result per item in request order, so check `success` on each result rather than relying on the HTTP status alone. A decision that already exists is updated.\n\nTeam membership is looked up from the caller's Workfront session. A request authenticated with only a bearer token has no session, so it is matched only against participants listed individually, not against teams the user belongs to.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "includeApproval",
+            "in": "query",
+            "required": false,
+            "description": "When `true`, each successful result also includes the updated approval in `approval`. Defaults to `false`.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "minItems": 1,
+                "description": "One item per decision to record.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "assetType",
+                    "assetId",
+                    "decision"
+                  ],
+                  "properties": {
+                    "assetType": {
+                      "type": "string",
+                      "description": "The type of asset the decision is for (for example `DOCV`)."
+                    },
+                    "assetId": {
+                      "type": "string",
+                      "description": "The ID of the asset the decision is for."
+                    },
+                    "decision": {
+                      "type": "string",
+                      "description": "The decision being made.",
+                      "enum": [
+                        "approved",
+                        "needs work",
+                        "approved with changes",
+                        "reviewed"
+                      ]
+                    },
+                    "stageId": {
+                      "type": "string",
+                      "description": "Optional stage ID. If omitted, the decision is applied to all eligible active stages."
+                    },
+                    "version": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "description": "Optional version reference, used when the approval is resolved through the asset's version stack."
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "assetType": "DOCV",
+                    "assetId": "69b1ea8500006ebab6a5eb8e622d4b09",
+                    "decision": "approved"
+                  },
+                  {
+                    "assetType": "DOCV",
+                    "assetId": "69b1ea8500006ebab6a5eb8e622d4b10",
+                    "decision": "needs work",
+                    "stageId": "019dd8a16cb17a58a3b73fc991f16e07"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "One result per request item, in request order.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "required": [
+                          "assetType",
+                          "assetId",
+                          "stageId",
+                          "success"
+                        ],
+                        "properties": {
+                          "assetType": {
+                            "type": "string"
+                          },
+                          "assetId": {
+                            "type": "string"
+                          },
+                          "stageId": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "success": {
+                            "type": "boolean",
+                            "enum": [
+                              true
+                            ]
+                          },
+                          "approval": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "description": "The updated approval. Present only when `includeApproval` is `true`."
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "assetType",
+                          "assetId",
+                          "stageId",
+                          "success",
+                          "error"
+                        ],
+                        "properties": {
+                          "assetType": {
+                            "type": "string"
+                          },
+                          "assetId": {
+                            "type": "string"
+                          },
+                          "stageId": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "success": {
+                            "type": "boolean",
+                            "enum": [
+                              false
+                            ]
+                          },
+                          "error": {
+                            "type": "object",
+                            "required": [
+                              "code",
+                              "message"
+                            ],
+                            "additionalProperties": true,
+                            "properties": {
+                              "code": {
+                                "type": "string",
+                                "description": "Why the decision could not be recorded. One of `APPROVAL_NOT_FOUND`, `STAGE_NOT_FOUND`, `STAGE_NOT_STARTED`, `APPROVAL_LOCKED`, `STAGE_LOCKED`, `PARTICIPANT_NOT_FOUND`, `INVALID_DECISION_FOR_ROLE`, `VERSION_CONFLICT`, `VERSION_NOT_FOUND`, `ASSET_TYPE_FORBIDDEN` or `UNKNOWN`."
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "example": [
+                    {
+                      "assetType": "DOCV",
+                      "assetId": "69b1ea8500006ebab6a5eb8e622d4b09",
+                      "stageId": null,
+                      "success": true
+                    },
+                    {
+                      "assetType": "DOCV",
+                      "assetId": "69b1ea8500006ebab6a5eb8e622d4b10",
+                      "stageId": "019dd8a16cb17a58a3b73fc991f16e07",
+                      "success": false,
+                      "error": {
+                        "code": "APPROVAL_NOT_FOUND",
+                        "message": "Approval not found"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
     "/api/v1/approvals/{assetType}/{assetId}/decisions": {
       "post": {
         "tags": [
