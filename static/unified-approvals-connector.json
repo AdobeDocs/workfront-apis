@@ -2314,7 +2314,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Optional. The complete set of document version (DOCV) IDs the group should contain; assets you leave out are removed. Omit the field to leave the group's assets unchanged. The group cannot be left with no assets (`409 GROUP_WOULD_BE_EMPTY`)."
+            "description": "Optional. The complete set of document version (DOCV) IDs the group should contain; assets you leave out are removed. Omit the field to leave the group's assets unchanged. When you send `assets` it must list at least one ID; an empty list returns `400`."
           },
           "idempotencyKey": {
             "type": "string",
@@ -7253,7 +7253,7 @@
         ],
         "summary": "Update grouped approval (full state)",
         "operationId": "updateGroupedApproval",
-        "description": "Replaces the complete desired state of a grouped approval (name, paths, stages, participants and assets) in one call. The current state is compared with the request and the difference is applied atomically: either every change is made or none are.\n\nPaths and stages are matched by `pathId` and `stageId`. One that matches updates the existing item, one that does not is created, and any existing path or stage you leave out is removed. Assets are only reconciled when you send `assets`: the list you send is the complete set (assets you leave out are removed), and leaving `assets` out keeps the group's assets as they are. To change only part of a group, use the narrower operations instead: rename, assets, stages, stage participants or stage metadata.\n\nA stage that is locked cannot be changed (`409`), and the group cannot be left with no assets (`409 GROUP_WOULD_BE_EMPTY`). Use `idempotencyKey` to make a retried save safe.",
+        "description": "Replaces the complete desired state of a grouped approval (name, paths, stages, participants and assets) in one call. The current state is compared with the request and the difference is applied atomically: either every change is made or none are.\n\nPaths and stages are matched by `pathId` and `stageId`. One that matches updates the existing item, one that does not is created, and any existing path or stage you leave out is removed. Assets are only reconciled when you send `assets`: the list you send is the complete set (assets you leave out are removed), and leaving `assets` out keeps the group's assets as they are. To change only part of a group, use the narrower operations instead: rename, assets, stages, stage participants or stage metadata.\n\nA stage that is locked cannot be changed (`409`), and `assets`, when sent, must list at least one ID (an empty list returns `400`). Use `idempotencyKey` to make a retried save safe.",
         "security": [
           {
             "Bearer": []
