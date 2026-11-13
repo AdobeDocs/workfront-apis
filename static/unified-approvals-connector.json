@@ -4633,7 +4633,7 @@
           "Stages"
         ],
         "summary": "Update all stages",
-        "description": "Replaces all stages on an existing approval with the given stage data. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Replaces all stages on an existing approval with the given stage data. The asset must be in an editable state.\n\nThe response is the approval as stored. Unlike `GET`, it does not include `userInfo`, `isApprovalActive`, `frameSyncStatus` or the enriched participant details; call `GET` if you need them.",
         "operationId": "putStages",
         "security": [
           {
@@ -4736,7 +4736,7 @@
           "Stages"
         ],
         "summary": "Update a stage",
-        "description": "Partially updates any field on the specified stage. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Partially updates any field on the specified stage. The asset must be in an editable state.\n\nFields you omit are left unchanged. `participants` are merged into the stage: a participant you send replaces the existing entry with the same `participantId` and `participantType`, and participants you do not send stay. `stageMetadata` and `config` are merged key by key, not replaced. To remove a participant use the delete participant operation.",
         "operationId": "patchStage",
         "security": [
           {
@@ -4811,7 +4811,7 @@
           "Stages"
         ],
         "summary": "Delete a stage",
-        "description": "Deletes the specified stage from the approval. The last remaining stage cannot be deleted (returns `400`); delete the approval instead. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Deletes the specified stage from the approval. The last remaining stage cannot be deleted (returns `400`); delete the approval instead. The asset must be in an editable state.\n\nThe response is the approval as stored. Unlike `GET`, it does not include `userInfo`, `isApprovalActive`, `frameSyncStatus` or the enriched participant details; call `GET` if you need them.",
         "operationId": "deleteStage",
         "security": [
           {
@@ -4878,7 +4878,7 @@
           "Stages"
         ],
         "summary": "Lock a stage",
-        "description": "Locks the specified stage. All decisions on the stage must have been made before locking. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Locks the specified stage. All decisions on the stage must have been made before locking. The asset must be in an editable state.\n\nThe response is the approval as stored. Unlike `GET`, it does not include `userInfo`, `isApprovalActive`, `frameSyncStatus` or the enriched participant details; call `GET` if you need them.",
         "operationId": "lockStage",
         "security": [
           {
@@ -4960,7 +4960,7 @@
           "Stages"
         ],
         "summary": "Unlock a stage",
-        "description": "Unlocks the specified stage, making it editable again. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Unlocks the specified stage, making it editable again. The asset must be in an editable state.\n\nThe response is the approval as stored. Unlike `GET`, it does not include `userInfo`, `isApprovalActive`, `frameSyncStatus` or the enriched participant details; call `GET` if you need them.",
         "operationId": "unlockStage",
         "security": [
           {
