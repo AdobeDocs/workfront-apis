@@ -3509,7 +3509,7 @@
               }
             ],
             "nullable": true,
-            "description": "The proxy identity that actually created the group (technical-account / proxy user). Matches creator when no proxying took place."
+            "description": "The technical account that made the call on behalf of `creator`. Absent or `null` when the caller and `creator` are the same identity."
           },
           "assets": {
             "type": "array",
@@ -7307,7 +7307,7 @@
         ],
         "summary": "Create grouped approval",
         "operationId": "createGroupedApproval",
-        "description": "Creates a grouped approval: a set of document versions that move together through one or more approval paths, each an ordered sequence of stages with its own participants. Optionally associate it with a Workfront parent object via `parentId`/`objCode`, or record an existing approval template with `templateId` (the template is not used to build the stages).",
+        "description": "Creates a grouped approval: a set of document versions that move together through one or more approval paths, each an ordered sequence of stages with its own participants. Optionally associate it with a Workfront parent object via `parentId`/`objCode`, or record an existing approval template with `templateId` (the template is not used to build the stages).\n\nStages are created with `config.autoLockEnabled` set to `true` unless you send `false`. `creator` is the user named by `wf-userid`. When a technical account makes the call on that user's behalf, the response also includes `realCreator`, the technical account's identity; otherwise `realCreator` is absent or `null`.",
         "security": [
           {
             "Bearer": []
