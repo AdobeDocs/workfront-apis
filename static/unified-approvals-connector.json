@@ -3,7 +3,7 @@
   "info": {
     "title": "Unified Approvals API",
     "version": "1.0",
-    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThis API is for Adobe IMS **technical accounts** (OAuth Server-to-Server credentials from the Adobe Developer Console). Send the technical account's access token as a Bearer token:\n\n| Header | Value |\n|--------|-------|\n| `Authorization` | `Bearer <access token>` |\n| `x-api-key` | The `client_id` of the technical account |\n| `wf-userid` | The Workfront user the request acts as |\n\nOnly the endpoints documented here are available to technical accounts. A request to any other path is rejected with `401`. A token that does not belong to a technical account, for example a user's token, is also rejected with `401`.\n\n> **Authentication errors**\n>\n> | Condition | HTTP status | Body |\n> |-----------|-------------|------|\n> | Token invalid or expired, not a technical account's, or the endpoint is not available to technical accounts | 401 | `{\"message\": \"Unauthorized\", \"statusCode\": 401}` |\n> | A required header such as `wf-userid` or `wf-lane` is missing | 400 | `message` names the missing header |\n> | `Authorization` header absent | 403 | `error_code` `403010`, returned by the Adobe I/O gateway |\n> | `x-api-key` header absent | 403 | `error_code` `403000`, returned by the Adobe I/O gateway |\n>\n> The gateway checks for missing credentials before the request reaches the service. The service itself returns the `401` and `400` responses above and does not add an `error_code`.\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path |\n|-----|-----------|\n| Approvals | `/api/v1/approvals` |\n| Grouped Approvals | `/api/v1/grouped-approvals` |\n| Templates | `/api/v1/templates` |\n| Bots | `/api/v1/bots` |\n| Bot Reviews | `/api/v1/bot-reviews` |\n\nAll endpoints use the authentication described above.\n",
+    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThis API is for Adobe IMS **technical accounts** (OAuth Server-to-Server credentials from the Adobe Developer Console). Send the technical account's access token as a Bearer token:\n\n| Header | Value |\n|--------|-------|\n| `Authorization` | `Bearer <access token>` |\n| `x-api-key` | The `client_id` of the technical account |\n| `wf-userid` | The Workfront user the request acts as |\n\nOnly the endpoints documented here are available to technical accounts. A request to any other path is rejected with `401`. A token that does not belong to a technical account, for example a user's token, is also rejected with `401`.\n\n> **Authentication errors**\n>\n> | Condition | HTTP status | Body |\n> |-----------|-------------|------|\n> | Token invalid or expired, not a technical account's, or the endpoint is not available to technical accounts | 401 | `{\"message\": \"Unauthorized\", \"statusCode\": 401}` |\n> | A required header such as `wf-userid` or `wf-lane` is missing | 400 | `message` names the missing header |\n> | `Authorization` header absent | 403 | `error_code` `403010`, returned by the Adobe I/O gateway |\n> | `x-api-key` header absent | 403 | `error_code` `403000`, returned by the Adobe I/O gateway |\n>\n> The gateway checks for missing credentials before the request reaches the service. The service itself returns the `401` and `400` responses above and does not add an `error_code`.\n\n## Errors\n\nEvery error response has `message` and `statusCode`. Errors that come from a business rule also carry a stable `code` in `response.code`; branch on that rather than on `message`. A `503` includes a `Retry-After` header: wait that many seconds, then retry.\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path |\n|-----|-----------|\n| Approvals | `/api/v1/approvals` |\n| Grouped Approvals | `/api/v1/grouped-approvals` |\n| Templates | `/api/v1/templates` |\n| Bots | `/api/v1/bots` |\n| Bot Reviews | `/api/v1/bot-reviews` |\n| Search | `/api/v1/search` |\n\nAll endpoints use the authentication described above.\n",
     "contact": {
       "name": "",
       "email": "",
@@ -48,6 +48,10 @@
     {
       "name": "Bot Reviews",
       "description": "AI brand review results from the Bot Registry"
+    },
+    {
+      "name": "Search",
+      "description": "Search approvals by project, folder, asset, status, participant and more."
     }
   ],
   "components": {
@@ -6878,7 +6882,7 @@
           "Approvals"
         ],
         "summary": "Bulk lookup approvals by asset ID",
-        "description": "Simple bulk lookup of approvals for a known list of asset IDs within a specific asset type. Provide the asset type in the path and an array of `assetIds` in the body to retrieve their approvals in a single call. If no body is supplied, the endpoint returns approvals for projects owned by the requesting user that are currently in review. Asset IDs with no approval are included in the response array as a stub containing only `assetId` and `frameSyncStatus: null`.",
+        "description": "Looks up the approvals for a list of asset IDs of one asset type. Provide the asset type in the path and the `assetIds` in the body. The response has one element per requested ID, in the order you sent them. An asset with no approval is returned as a stub with only `assetId` and `frameSyncStatus`. `frameSyncStatus` is `true` or `false` once Frame sync has been recorded for the asset, and `null` otherwise.\n\n`assetIds` is required. If you set `view`, the matching approvals are read in pages of 100 and a request that matches more than 1,000 returns `500`.",
         "operationId": "bulkLookupApprovalsByAssetType",
         "security": [
           {
@@ -6930,8 +6934,19 @@
                     "enum": [
                       "DOCV"
                     ]
+                  },
+                  "view": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "full_with_paths"
+                    ],
+                    "description": "Optional response shape. `full_with_paths` also includes each parallel path's own stages and structure in `paths`. Omit for the default shape."
                   }
-                }
+                },
+                "required": [
+                  "assetIds"
+                ]
               }
             }
           },
@@ -7896,6 +7911,246 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/search/approvals": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search approvals",
+        "operationId": "searchApprovals",
+        "description": "Searches the approvals the requesting user can see, filtered by any combination of the fields below, and returns one page of results. Pass the `cursor` from a response back in the next request to get the following page; `cursor` is `null` when there are no more results.\n\n`projectId` and `folderId` are resolved to the document versions in that project or folder, so a project with no documents returns an empty `data` array, and a project or folder that has no document matching your `assetType` or `assetId` returns `400`.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Only approvals on documents in this Workfront project (one ID or a list)."
+                  },
+                  "folderId": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    ],
+                    "description": "Only approvals on documents in this Workfront folder. Use `null` for the root folder of the project."
+                  },
+                  "assetType": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Only approvals on this asset type (for example `DOCV`)."
+                  },
+                  "assetId": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Only approvals on these asset IDs."
+                  },
+                  "approvalStatus": {
+                    "type": "string",
+                    "description": "Only approvals with this status."
+                  },
+                  "creatorId": {
+                    "type": "string",
+                    "description": "Only approvals created by this user."
+                  },
+                  "createdDateFrom": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Only approvals created at or after this time."
+                  },
+                  "createdDateTo": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Only approvals created at or before this time."
+                  },
+                  "productId": {
+                    "type": "string",
+                    "description": "Only approvals for this product."
+                  },
+                  "stageStatus": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Only approvals that have a stage with this status."
+                  },
+                  "stageDeadlineDateFrom": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Only stages with a deadline at or after this time."
+                  },
+                  "stageDeadlineDateTo": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Only stages with a deadline at or before this time."
+                  },
+                  "participantType": {
+                    "type": "string",
+                    "description": "Only approvals with a participant of this type."
+                  },
+                  "participantId": {
+                    "type": "string",
+                    "description": "Only approvals this participant is on."
+                  },
+                  "participantRole": {
+                    "type": "string",
+                    "description": "Only approvals where a participant has this role."
+                  },
+                  "participantStatus": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Only approvals where a participant has this status."
+                  },
+                  "overdue": {
+                    "type": "boolean",
+                    "description": "When `true`, only approvals with a stage deadline in the past. If `stageDeadlineDateTo` is missing or in the future it is set to the current time."
+                  },
+                  "view": {
+                    "type": "string",
+                    "default": "full",
+                    "description": "Shape of the result rows.\n\n- `full` \u2014 the complete approval, with its stages and participants (default).\n- `full_with_paths` \u2014 `full`, plus each parallel path's own stages and structure in `paths`.\n- `personalApprovals` \u2014 only approvals the requesting user is a participant on.\n- `participants` \u2014 one row per participant instead of per approval; rows have no `assetId`."
+                  },
+                  "cursor": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Cursor from the previous response, to get the next page. Omit for the first page."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 20,
+                    "description": "Page size, 1 to 100."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      },
+                      "description": "Result rows, in the shape of the requested `view`."
+                    },
+                    "cursor": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Cursor for the next page, or `null` if there are no more results."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
