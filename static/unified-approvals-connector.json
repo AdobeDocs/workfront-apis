@@ -4150,6 +4150,16 @@
             }
           }
         }
+      },
+      "GroupedApprovalsDisabledResponse": {
+        "description": "Forbidden \u2014 grouped approvals are not enabled for this tenant (`response.code` is `GROUPED_APPROVALS_DISABLED`).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
       }
     }
   },
@@ -7214,8 +7224,23 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -7337,6 +7362,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -7406,14 +7434,7 @@
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "403": {
-            "description": "Grouped approvals are not enabled for this tenant (`response.code` is `GROUPED_APPROVALS_DISABLED`).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
@@ -7642,11 +7663,20 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -7720,11 +7750,20 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -7798,11 +7837,20 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -7903,20 +7951,19 @@
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "403": {
-            "description": "Grouped approvals are not enabled for this tenant (`response.code` is `GROUPED_APPROVALS_DISABLED`).",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -7987,11 +8034,20 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
