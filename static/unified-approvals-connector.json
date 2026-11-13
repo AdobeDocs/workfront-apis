@@ -1584,13 +1584,14 @@
           },
           "response": {
             "type": "object",
-            "description": "Upstream service error response, if applicable"
+            "description": "The upstream or business error body. For business errors it includes `code` and often `details` (for example `assetIds` on `FRAME_ASSET_NOT_READY`)."
           },
           "source": {
             "type": "string",
             "description": "Which upstream produced the error (for example `workfront` or `aas`). Only present on operations that call more than one upstream, where the HTTP status alone cannot tell you which one failed."
           }
-        }
+        },
+        "description": "Error body. `message` is human readable and may change; do not match on it. Business errors carry a stable `code` inside `response` (for example `GROUPED_APPROVALS_DISABLED`, `FRAME_ASSET_NOT_READY`, `STAGE_ID_CONFLICT`, `GROUP_ASSET_STAGE_CAP_EXCEEDED`); branch on `response.code`."
       },
       "GuidelineCheckResult": {
         "type": "object",
@@ -4129,6 +4130,26 @@
             }
           }
         }
+      },
+      "ForbiddenNotEditableResponse": {
+        "description": "Forbidden \u2014 the asset is not editable by the requesting user: it is not the current version, or the user does not have edit permission or the license required to edit it.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ForbiddenNotCurrentVersionResponse": {
+        "description": "Forbidden \u2014 decisions can only be made on the current version of the asset.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
       }
     }
   },
@@ -4362,6 +4383,9 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
@@ -4557,8 +4581,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -4652,6 +4685,9 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
@@ -4726,6 +4762,9 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
@@ -4787,6 +4826,9 @@
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
@@ -4852,14 +4894,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
@@ -4931,14 +4976,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
@@ -5275,6 +5323,9 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotCurrentVersionResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
@@ -5333,6 +5384,9 @@
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotCurrentVersionResponse"
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
@@ -5423,6 +5477,9 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotCurrentVersionResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
@@ -5484,6 +5541,9 @@
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotCurrentVersionResponse"
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
@@ -5657,6 +5717,9 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
@@ -5738,6 +5801,9 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
@@ -5809,14 +5875,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
@@ -5915,14 +5984,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
@@ -6004,14 +6076,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
@@ -6110,14 +6185,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
