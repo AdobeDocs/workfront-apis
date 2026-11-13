@@ -4258,8 +4258,8 @@
         "tags": [
           "Approvals"
         ],
-        "summary": "Create approval",
-        "description": "Creates an approval with the supplied stage data. The `stages` array in the body defines the approval structure and is used as-is. `templateId` is optional metadata: the caller is expected to have fetched the template separately (`GET /api/v1/templates/{templateId}`) and copied its stages into the request body. When `templateId` is supplied, it is recorded on the new approval and the corresponding template's `usageCount` is incremented and `lastUsedOnDate` is refreshed.",
+        "summary": "Create approval (deprecated)",
+        "description": "**Deprecated.** Use `POST /api/v1/approvals/{assetType}/{assetId}/stages` instead. It creates the approval and its stages in one call and is the supported path for every asset type; this operation only works for assets in external storage (ESM), does not work for other assets, and will be removed.\n\nCreates an approval with the supplied stage data. The `stages` array in the body defines the approval structure and is used as-is. `templateId` is optional metadata: the caller is expected to have fetched the template separately (`GET /api/v1/templates/{templateId}`) and copied its stages into the request body. When `templateId` is supplied, it is recorded on the new approval and the corresponding template's `usageCount` is incremented and `lastUsedOnDate` is refreshed.",
         "operationId": "createApproval",
         "security": [
           {
@@ -4353,7 +4353,8 @@
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
           }
-        }
+        },
+        "deprecated": true
       },
       "delete": {
         "tags": [
