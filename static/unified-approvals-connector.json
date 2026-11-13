@@ -1724,7 +1724,7 @@
       "ParticipantMetadata": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Free-form metadata about the participant. The shape varies by `participantType`:\n\n**`USER` participants**\n```\n{\n  \"isBot\": boolean,\n  \"participantIdType\": \"wf_guid\" | \"ims\" | \"email\",\n  \"wfUserId\": \"string\",\n  \"emailAddr\": \"string\"  // omitted when not available\n}\n```\n\n**`TEAMOB` (team) participants**\n```\n{\n  \"isBot\": boolean\n}\n```\n\nSee `ParticipantUserMetadata` and `ParticipantTeamMetadata` for the typed shapes. Additional context-specific properties may be present; consumers should treat unknown keys as informational.",
+        "description": "Metadata about the participant, set by the service from the user's or team's Workfront profile. Any `participantMetadata` you send on a create, replace, update or add-participant request is replaced by these values. The shape varies by `participantType`:\n\n**`USER` participants**\n```\n{\n  \"isBot\": boolean,\n  \"participantIdType\": \"wf_guid\" | \"ims\" | \"email\",\n  \"wfUserId\": \"string\",\n  \"emailAddr\": \"string\"  // omitted when not available\n}\n```\n\n**`TEAMOB` (team) participants**\n```\n{\n  \"isBot\": boolean\n}\n```\n\nSee `ParticipantUserMetadata` and `ParticipantTeamMetadata` for the typed shapes. Additional context-specific properties may be present; consumers should treat unknown keys as informational.",
         "oneOf": [
           {
             "$ref": "#/components/schemas/ParticipantUserMetadata"
@@ -2185,7 +2185,7 @@
           },
           "participantMetadata": {
             "type": "object",
-            "description": "Optional free-form key/value metadata for this participant.",
+            "description": "Free-form metadata for this participant: at most 10 keys, keys up to 255 characters (no `.`, `$` prefix, or the names `add`, `update`, `remove`), and string, number or boolean values (strings up to 255 characters).",
             "additionalProperties": {
               "oneOf": [
                 {
@@ -2260,7 +2260,7 @@
           },
           "stageMetadata": {
             "type": "object",
-            "description": "Free-form stage-level metadata.",
+            "description": "Free-form stage metadata: at most 10 keys, keys up to 255 characters, string values up to 1,000 characters.",
             "additionalProperties": true
           },
           "config": {
@@ -2475,7 +2475,7 @@
           },
           "metadata": {
             "type": "object",
-            "description": "Stage-level metadata as string key/value pairs. Note the field is named `metadata` here, not `stageMetadata`; a `stageMetadata` property is ignored.",
+            "description": "Free-form stage metadata: at most 10 keys, keys up to 255 characters, string values up to 1,000 characters.",
             "additionalProperties": {
               "type": "string"
             }
@@ -2629,7 +2629,8 @@
           },
           "stageMetadata": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Free-form stage metadata: at most 10 keys, keys up to 255 characters, string values up to 1,000 characters."
           }
         }
       },
@@ -2713,7 +2714,7 @@
           "participantMetadata": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Optional free-form metadata for the participant."
+            "description": "Free-form metadata for this participant: at most 10 keys, keys up to 255 characters (no `.`, `$` prefix, or the names `add`, `update`, `remove`), and string, number or boolean values (strings up to 255 characters)."
           }
         }
       },
@@ -2747,7 +2748,7 @@
           "participantMetadata": {
             "type": "object",
             "additionalProperties": false,
-            "description": "Metadata operations.",
+            "description": "Metadata operations, applied remove, then update, then add. Same key and value rules as when adding a participant; a participant holds at most 10 keys. `update` of a missing key is reported as `METADATA_KEY_NOT_FOUND`.",
             "properties": {
               "add": {
                 "type": "object",
@@ -2791,22 +2792,32 @@
       },
       "GroupedApprovalStageMetadataUpdate": {
         "type": "object",
-        "description": "Add/update/remove free-form metadata keys on a stage.",
+        "description": "Add, update or remove metadata keys on a stage. Operations are applied in the order remove, then update, then add.\n\n- `add` sets a key whether or not it exists already.\n- `update` changes an existing key. A missing key is reported as `METADATA_KEY_NOT_FOUND`. A value of `null` removes the key, and does nothing if it is already absent.\n- `remove` deletes the listed keys. A missing key is reported as `METADATA_KEY_NOT_FOUND`.\n\nValues are strings of at most 1,000 characters. Keys are at most 255 characters and cannot be `__proto__`, `constructor`, `prototype` or start with `$`. A stage holds at most 10 keys; a key that would go over is reported as `METADATA_LIMIT_EXCEEDED`. Each of `add`, `update` and `remove` accepts at most 50 keys per request.\n\nFailures are reported per key in `errors` of a `200` response; the other keys in the request are still applied.",
         "properties": {
           "add": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 1000
+            },
+            "maxProperties": 50
           },
           "update": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": {
+              "type": "string",
+              "nullable": true,
+              "maxLength": 1000
+            },
+            "maxProperties": 50
           },
           "remove": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Metadata keys to remove."
+            "description": "Metadata keys to remove.",
+            "maxItems": 50
           }
         }
       },
@@ -4047,7 +4058,7 @@
       "GroupedApprovalStageMetadataResult": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Result of a stage-metadata add/update/remove PATCH. Per-key failures (e.g. METADATA_KEY_NOT_FOUND) are returned in `errors`; check `summary` for counts.",
+        "description": "Result of a stage-metadata add/update/remove PATCH. Per-key failures are returned in `errors` with a `code` of `INVALID_KEY`, `INVALID_VALUE`, `METADATA_KEY_NOT_FOUND` or `METADATA_LIMIT_EXCEEDED`; check `summary` for counts.",
         "properties": {
           "added": {
             "type": "object",
@@ -7942,7 +7953,7 @@
         ],
         "summary": "Manage stage metadata",
         "operationId": "manageGroupedApprovalStageMetadata",
-        "description": "Adds, updates and/or removes free-form metadata keys on a specific stage of a grouped approval.",
+        "description": "Adds, updates and/or removes free-form metadata keys on a specific stage of a grouped approval. See the request body for the rules and limits.",
         "security": [
           {
             "Bearer": []
