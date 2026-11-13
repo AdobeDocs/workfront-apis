@@ -2696,7 +2696,8 @@
             "enum": [
               "approver",
               "reviewer"
-            ]
+            ],
+            "description": "Participant role (case-insensitive; APPROVER/REVIEWER also accepted)."
           },
           "participantMetadata": {
             "type": "object",
@@ -3824,7 +3825,7 @@
             "type": "string",
             "example": "Could not resolve the participant identity."
           },
-          "guid": {
+          "identityGuid": {
             "type": "string",
             "example": "698b60820000462ecf66c409d1248fa9"
           },
@@ -3925,7 +3926,7 @@
         "additionalProperties": true,
         "description": "A participant echoed back from a stage-participants PATCH (fields relayed from upstream; may include more).",
         "properties": {
-          "guid": {
+          "identityGuid": {
             "type": "string",
             "example": "698b60820000462ecf66c409d1248fa9"
           },
@@ -3956,6 +3957,11 @@
                 "type": "email"
               }
             ]
+          },
+          "participantMetadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The participant's metadata after the change. Present on `added` and `updated` items, not on `removed`."
           }
         }
       },
@@ -7803,7 +7809,7 @@
         ],
         "summary": "Manage stage participants",
         "operationId": "manageGroupedApprovalStageParticipants",
-        "description": "Adds, updates and/or removes participants on a specific stage of a grouped approval. New participants (`add`/`update`) are resolved to Workfront users or teams; `remove` matches on identity.",
+        "description": "Adds, updates and/or removes participants on a specific stage of a grouped approval. New participants (`add`/`update`) are resolved to Workfront users or teams; `remove` matches on identity. Changes are applied in the order remove, then update, then add. Send at least one of `add`, `update` or `remove`, with at most 50 entries in each. Participants are identified by `id` (and `type` for a team, which defaults to `USER`); a `remove` for a team must send `type: TEAMOB`. A `200` can still carry per-item failures: check `errors` and `summary`.",
         "security": [
           {
             "Bearer": []
