@@ -6825,7 +6825,7 @@
           "Bots"
         ],
         "summary": "List bot reviewers",
-        "description": "Returns a paginated list of Workfront bot users that are eligible to be added as reviewer participants on an approval. A bot reviewer is invoked automatically when its assigned stage becomes active.",
+        "description": "Returns a paginated list of Workfront bot users that are eligible to be added as reviewer participants on an approval. A bot reviewer is invoked automatically when its assigned stage becomes active. Both enabled and disabled bots are returned; check `isActive`. Only bots of type `doc-brand-reviewer` are listed. A `limit` outside 1 to 100, or a non-integer `page` or `limit`, returns `400`.",
         "operationId": "getBots",
         "security": [
           {
@@ -6961,6 +6961,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
@@ -7265,7 +7268,8 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "description": "Workfront parent object ID (e.g. `5f9a1c2b0000d4e1a1b2c3d4e5f60718`)."
           },
