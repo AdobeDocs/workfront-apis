@@ -2468,23 +2468,41 @@
       },
       "GroupedApprovalAssetsUpdate": {
         "type": "object",
-        "description": "Add and/or remove assets on a grouped approval in a single call.",
+        "description": "Add and/or remove assets on a grouped approval in a single call. Send at least one of `add` or `remove`. Removals are applied before additions.",
         "properties": {
           "add": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{32}$"
             },
-            "description": "Document version (DOCV) IDs to add."
+            "description": "Document version (DOCV) IDs to add, 1 to 25.",
+            "minItems": 1,
+            "maxItems": 25
           },
           "remove": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{32}$"
             },
-            "description": "Document version (DOCV) IDs to remove."
+            "description": "Document version (DOCV) IDs to remove, 1 to 25.",
+            "minItems": 1,
+            "maxItems": 25
           }
-        }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "add"
+            ]
+          },
+          {
+            "required": [
+              "remove"
+            ]
+          }
+        ]
       },
       "GroupedApprovalStagesUpdate": {
         "type": "object",
