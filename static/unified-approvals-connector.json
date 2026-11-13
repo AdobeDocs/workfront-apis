@@ -12,7 +12,7 @@
   },
   "servers": [
     {
-      "url": "https://workfront.adobe.io/workfront-approvals/",
+      "url": "https://workfront.adobe.io/workfront-approvals",
       "description": "Production"
     }
   ],
@@ -128,15 +128,6 @@
           "type": "string"
         }
       },
-      "ImsOrgId": {
-        "name": "imsOrgId",
-        "in": "path",
-        "required": true,
-        "description": "IMS Organization ID",
-        "schema": {
-          "type": "string"
-        }
-      },
       "XRequestId": {
         "name": "x-request-id",
         "in": "header",
@@ -197,15 +188,9 @@
         "required": true,
         "schema": {
           "type": "string",
-          "enum": [
-            "prod",
-            "preview",
-            "hub",
-            "staging",
-            "devtest"
-          ]
+          "example": "prod"
         },
-        "description": "Workfront deployment lane."
+        "description": "Workfront deployment lane your customer is on, for example `prod`."
       },
       "GroupGuid": {
         "name": "groupGuid",
@@ -382,6 +367,48 @@
               "currentUserMadeDecision": {
                 "type": "boolean",
                 "nullable": true
+              },
+              "isDelegatedAction": {
+                "type": "boolean",
+                "nullable": true,
+                "description": "`true` if the requesting user can act on this approval as a delegate of another participant."
+              },
+              "delegatedFromParticipantId": {
+                "type": "string",
+                "nullable": true,
+                "description": "The participant the requesting user is acting for, when `isDelegatedAction` is `true`."
+              },
+              "delegatedFromName": {
+                "type": "string",
+                "nullable": true,
+                "description": "Display name of the participant the requesting user is acting for."
+              }
+            }
+          },
+          "groupedApprovalGuid": {
+            "type": "string",
+            "nullable": true,
+            "description": "GUID of the grouped approval this approval belongs to, or `null` if it is not part of one."
+          },
+          "imsOrgId": {
+            "type": "string",
+            "description": "IMS organization ID of the customer."
+          },
+          "config": {
+            "type": "object",
+            "description": "Approval-level settings. Present only for customers that have the approved-with-changes settings enabled.",
+            "properties": {
+              "allowedApproverDecisions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "approved",
+                    "approved with changes",
+                    "needs work"
+                  ]
+                },
+                "description": "The decisions approvers may choose on this approval."
               }
             }
           }
@@ -4284,10 +4311,7 @@
                     {
                       "$ref": "#/components/schemas/PartialApproval"
                     }
-                  ],
-                  "discriminator": {
-                    "propertyName": "approvalGuid"
-                  }
+                  ]
                 }
               }
             }
