@@ -834,10 +834,7 @@
       },
       "StageBody": {
         "type": "object",
-        "required": [
-          "participants"
-        ],
-        "description": "Stage definition used when creating or updating an approval",
+        "description": "A stage definition. `participants` is required when creating stages with `POST \u2026/stages`; on `PATCH \u2026/stages/{stageId}` send only the fields you want to change.",
         "properties": {
           "stageId": {
             "type": "string",
@@ -855,12 +852,28 @@
             "type": "number",
             "nullable": true
           },
-          "deadlineTime": {
-            "type": "string",
+          "deadlineTimeOfDay": {
+            "type": "object",
             "nullable": true,
-            "example": "17:00",
-            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
-            "description": "Deadline time of day in 24-hour `HH:MM` format (e.g. `\"17:00\"`)."
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
+            "properties": {
+              "hours": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23,
+                "description": "Hour of the day (0\u201323)."
+              },
+              "minutes": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59,
+                "description": "Minute of the hour (0\u201359)."
+              }
+            },
+            "example": {
+              "hours": 17,
+              "minutes": 0
+            }
           },
           "stageMetadata": {
             "type": "object",
@@ -4501,7 +4514,7 @@
           "Stages"
         ],
         "summary": "Create stages (auto-creates approval)",
-        "description": "Adds one or more stages to the approval for the given asset. If no approval exists for the asset yet, one is created automatically \u2014 so this endpoint can be used in place of `POST /api/v1/approvals/{assetType}/{assetId}` to create an approval and its initial stages in a single call. Returns 201 on success.",
+        "description": "Creates the approval for the asset from the given stages (or `paths`), and returns it with `201`. If the asset already has an approval, its whole state is replaced by the stages you send, and the response is still `201`; use the `PUT` or `PATCH` stage operations to change an existing approval without resending everything.\n\nThis is the way to create an approval, including its first stages, in one call.\n\nThe stages must form a single sequential chain:\n\n- Exactly one stage has no `parentIds` (the first stage), and each stage has at most one parent and at most one child.\n- An `onCreate` trigger is allowed only on the first stage, and an `onStagesComplete` trigger only on later stages.\n- A trigger can only refer to stages in the same request, and never to its own stage.\n- Every participant must be an active user. Deactivated users return `400`.\n\n`paths` is honored only for tenants that have parallel approval paths enabled; otherwise send `stages`. Violations of the rules above return `400` with a message for each problem.",
         "operationId": "postStages",
         "security": [
           {
@@ -4549,7 +4562,17 @@
                     "minItems": 1,
                     "description": "Stage definitions used to build a single-path approval. Mutually exclusive with `paths` — provide one or the other.",
                     "items": {
-                      "$ref": "#/components/schemas/StageBody"
+                      "allOf": [
+                        {
+                          "$ref": "#/components/schemas/StageBody"
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "participants"
+                          ]
+                        }
+                      ]
                     }
                   },
                   "paths": {
