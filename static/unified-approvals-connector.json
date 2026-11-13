@@ -1137,6 +1137,17 @@
             "type": "integer",
             "deprecated": true,
             "description": "**Deprecated.** Use `timeframeEstimate` instead. Previously used to store the expected duration of the approval in days."
+          },
+          "sharedWithEveryone": {
+            "type": "boolean",
+            "description": "`true` if the template is shared with everyone in the customer."
+          },
+          "sharedWithCompanies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs of the companies the template is shared with. Present only for customers that have company sharing enabled."
           }
         },
         "example": {
@@ -1362,7 +1373,8 @@
           },
           "companyId": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "ID of the company this template belongs to, used by the `filterByMyCompany` query parameter. Send `null` to clear it."
           },
           "stages": {
             "type": "array",
@@ -1381,19 +1393,25 @@
           },
           "sharedWith": {
             "type": "array",
-            "description": "Optional list of users the template is shared with.",
+            "description": "Who the template is shared with, view-only. Each item has exactly one of `userId`, `tenantId` or `companyId`. The creator always has access and is ignored if listed.\n\n- `{ \"userId\": \"...\" }` shares with one user.\n- `{ \"tenantId\": \"...\" }` shares with everyone in the customer. `tenantId` must be your own customer ID. When present, `userId` and `companyId` items add nothing and are not stored.\n- `{ \"companyId\": \"...\" }` shares with a company. Only honored for customers that have company sharing enabled; otherwise the item is ignored.\n\nOn create, omitting `sharedWith` leaves the template private. On `PUT` and `PATCH`, omitting it leaves sharing unchanged and sending `[]` removes all sharing.",
             "items": {
               "type": "object",
               "properties": {
                 "userId": {
                   "type": "string"
                 },
+                "tenantId": {
+                  "type": "string"
+                },
+                "companyId": {
+                  "type": "string"
+                },
                 "accessLevel": {
                   "type": "string",
                   "enum": [
-                    "EDIT_ACCESS",
                     "VIEW_ACCESS"
-                  ]
+                  ],
+                  "description": "Optional. Shared access is always view-only; `EDIT_ACCESS` returns `400`."
                 }
               }
             }
@@ -4173,6 +4191,16 @@
             }
           }
         }
+      },
+      "ForbiddenTemplateResponse": {
+        "description": "Forbidden \u2014 the user does not have the Full license required to change templates, or does not have permission on this template (edit to change it, delete to delete it).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
       }
     }
   },
@@ -6252,7 +6280,7 @@
           "Templates"
         ],
         "summary": "List templates",
-        "description": "Returns all approval templates visible to the current user.",
+        "description": "Returns the approval templates the current user can view: the user's own templates, templates shared with the user, and templates shared with everyone in the customer. Use `filters` to narrow to one of those sets. Returns `404` if the customer has no templates.",
         "operationId": "getTemplates",
         "security": [
           {
@@ -6260,6 +6288,30 @@
           }
         ],
         "parameters": [
+          {
+            "name": "filters",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "owned",
+                "shared"
+              ],
+              "default": "all"
+            },
+            "description": "Which templates to return. `all` is every template the user can view, `owned` is the user's own templates (the ones they can edit), and `shared` is the templates shared with the user."
+          },
+          {
+            "name": "filterByMyCompany",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "When `true`, only templates whose `companyId` matches the requesting user's company are returned."
+          },
           {
             "$ref": "#/components/parameters/XApiKey"
           },
@@ -6307,8 +6359,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -6317,7 +6375,7 @@
           "Templates"
         ],
         "summary": "Create template",
-        "description": "Creates an approval template. A customer can create a maximum of 1000 templates. Requires template management permissions.",
+        "description": "Creates an approval template. A customer can create a maximum of 1000 templates. Requires a Full license. The new template is private to its creator unless you share it with `sharedWith`.",
         "operationId": "createTemplate",
         "security": [
           {
@@ -6374,8 +6432,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenTemplateResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -6438,6 +6502,9 @@
           },
           "500": {
             "description": "Internal Server Error. Also returned when the template ID does not exist \u2014 the service currently returns 500 instead of 404 for unrecognized IDs."
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -6446,7 +6513,7 @@
           "Templates"
         ],
         "summary": "Replace template",
-        "description": "Replaces an approval template with the supplied body. Use `PATCH` to change only some fields. Requires template management permissions.",
+        "description": "Replaces an approval template with the supplied body. Use `PATCH` to change only some fields. Requires a Full license, and permission to edit the template. `sharedWith` is replaced by the list you send, and left unchanged if you omit it.",
         "operationId": "putTemplate",
         "security": [
           {
@@ -6506,11 +6573,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenTemplateResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -6519,7 +6592,7 @@
           "Templates"
         ],
         "summary": "Update template",
-        "description": "Partially updates an approval template. Requires template management permissions.",
+        "description": "Partially updates an approval template. Requires a Full license, and permission to edit the template. No field is required; send only the ones to change. `sharedWith`, if sent, replaces the whole list; omit it to leave sharing unchanged.",
         "operationId": "patchTemplate",
         "security": [
           {
@@ -6579,11 +6652,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenTemplateResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -6592,7 +6671,7 @@
           "Templates"
         ],
         "summary": "Delete template",
-        "description": "Deletes a single approval template. Requires template management permissions.",
+        "description": "Deletes a single approval template. Requires a Full license and permission to delete the template.",
         "operationId": "deleteTemplate",
         "security": [
           {
@@ -6632,8 +6711,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenTemplateResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -6644,7 +6729,7 @@
           "Templates"
         ],
         "summary": "Bulk delete templates",
-        "description": "Deletes multiple approval templates in one call. IDs are comma-separated in the path. Requires template management permissions.",
+        "description": "Deletes multiple approval templates in one call. IDs are comma-separated in the path. Requires a Full license. Each ID is checked for delete permission on its own: IDs you may delete are deleted, and the rest are reported in `failed`. `errors` lists IDs whose permission check could not run because the authorization service was unavailable; retry those. If every check fails, the call returns `503` and nothing is deleted.",
         "operationId": "bulkDeleteTemplates",
         "security": [
           {
@@ -6698,8 +6783,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenTemplateResponse"
+          },
           "500": {
             "description": "Returned when one or more supplied IDs are not valid MongoDB ObjectId format strings. An ID that fails the permission check is not an error — it is returned in the 200 response's `failed` array instead. Note: a valid-format ID that passes the permission check but does not match any template is reported in `deleted`, since the upstream delete does not report per-ID outcomes."
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
