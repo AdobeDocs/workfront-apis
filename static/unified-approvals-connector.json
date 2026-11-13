@@ -3,7 +3,7 @@
   "info": {
     "title": "Unified Approvals API",
     "version": "1.0",
-    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThe connector supports one authentication method:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept Bearer token auth.\n\n> **Note on auth error codes:** The AIO gateway performs credential pre-flight before routing to the service.\n> \n> | Condition | HTTP status | `error_code` |\n> |-----------|-------------|---------------|\n> | `Authorization` header absent | 403 | `403010` \u2014 \"Oauth token is missing.\" |\n> | `x-api-key` header absent (valid Bearer present) | 403 | `403000` \u2014 \"Api Key is missing.\" |\n> | Token present but invalid or expired | 401 | `401013` |\n> \n> The first two cases are caught by the gateway and never reach the service. The 401 case is handled by the service itself.\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals` | Complex |\n| Grouped Approvals | `/api/v1/grouped-approvals` | Complex |\n| Templates | `/api/v1/templates` | Complex |\n| Bots | `/api/v1/bots` | Complex |\n| Bot Reviews | `/api/v1/bot-reviews` | Complex |\n",
+    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThis API is for Adobe IMS **technical accounts** (OAuth Server-to-Server credentials from the Adobe Developer Console). Send the technical account's access token as a Bearer token:\n\n| Header | Value |\n|--------|-------|\n| `Authorization` | `Bearer <access token>` |\n| `x-api-key` | The `client_id` of the technical account |\n| `wf-userid` | The Workfront user the request acts as |\n\nOnly the endpoints documented here are available to technical accounts. A request to any other path is rejected with `401`. A token that does not belong to a technical account, for example a user's token, is also rejected with `401`.\n\n> **Authentication errors**\n>\n> | Condition | HTTP status | Body |\n> |-----------|-------------|------|\n> | Token invalid or expired, not a technical account's, or the endpoint is not available to technical accounts | 401 | `{\"message\": \"Unauthorized\", \"statusCode\": 401}` |\n> | A required header such as `wf-userid` or `wf-lane` is missing | 400 | `message` names the missing header |\n> | `Authorization` header absent | 403 | `error_code` `403010`, returned by the Adobe I/O gateway |\n> | `x-api-key` header absent | 403 | `error_code` `403000`, returned by the Adobe I/O gateway |\n>\n> The gateway checks for missing credentials before the request reaches the service. The service itself returns the `401` and `400` responses above and does not add an `error_code`.\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path |\n|-----|-----------|\n| Approvals | `/api/v1/approvals` |\n| Grouped Approvals | `/api/v1/grouped-approvals` |\n| Templates | `/api/v1/templates` |\n| Bots | `/api/v1/bots` |\n| Bot Reviews | `/api/v1/bot-reviews` |\n\nAll endpoints use the authentication described above.\n",
     "contact": {
       "name": "",
       "email": "",
@@ -56,7 +56,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "IMS Bearer token from Adobe IO / Developer Console."
+        "description": "Access token of an Adobe IMS technical account (OAuth Server-to-Server), from the Adobe Developer Console. Tokens for other kinds of accounts are rejected with `401`."
       }
     },
     "parameters": {
@@ -185,7 +185,7 @@
         "schema": {
           "type": "string"
         },
-        "description": "Workfront user ID of the acting user."
+        "description": "ID of the Workfront user the request acts as."
       },
       "WfLane": {
         "name": "wf-lane",
@@ -4039,7 +4039,7 @@
         }
       },
       "UnauthorizedResponse": {
-        "description": "Unauthorized \u2014 no valid auth credentials provided",
+        "description": "Unauthorized \u2014 the token is invalid or expired, is not a technical account's token, or the endpoint is not available to technical accounts",
         "content": {
           "application/json": {
             "schema": {
