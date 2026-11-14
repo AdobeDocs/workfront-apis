@@ -5155,7 +5155,7 @@
         ],
         "summary": "Make decisions on multiple approvals",
         "operationId": "makeBulkDecisions",
-        "description": "Records the requesting user's decision on several assets in one request. Each item names an asset and a decision; set `stageId` to decide a single stage, or omit it to apply the decision to all of the asset's eligible active stages. Items are processed independently and the response contains one result per item in request order, so check `success` on each result rather than relying on the HTTP status alone. A decision that already exists is updated.\n\nTeam membership is looked up from the caller's Workfront session. A request authenticated with only a bearer token has no session, so it is matched only against participants listed individually, not against teams the user belongs to.",
+        "description": "Records the requesting user's decision on several assets in one request. Each item names an asset and a decision; set `stageId` to decide a single stage, or omit it to apply the decision to all of the asset's eligible active stages. Items are processed independently and the response contains one result per item in request order, so check `success` on each result rather than relying on the HTTP status alone. A decision that already exists is updated.",
         "security": [
           {
             "Bearer": []
@@ -5339,7 +5339,7 @@
                             "properties": {
                               "code": {
                                 "type": "string",
-                                "description": "Why the decision could not be recorded. One of `APPROVAL_NOT_FOUND`, `STAGE_NOT_FOUND`, `STAGE_NOT_STARTED`, `APPROVAL_LOCKED`, `STAGE_LOCKED`, `PARTICIPANT_NOT_FOUND`, `INVALID_DECISION_FOR_ROLE`, `VERSION_CONFLICT`, `VERSION_NOT_FOUND`, `ASSET_TYPE_FORBIDDEN` or `UNKNOWN`."
+                                "description": "Why the decision could not be recorded. One of `APPROVAL_NOT_FOUND`, `STAGE_NOT_FOUND`, `STAGE_NOT_STARTED`, `APPROVAL_LOCKED`, `STAGE_LOCKED`, `PARTICIPANT_NOT_FOUND`, `INVALID_DECISION_FOR_ROLE`, `GROUP_WITHDRAWN`, `VERSION_CONFLICT`, `VERSION_NOT_FOUND`, `ASSET_TYPE_FORBIDDEN` or `UNKNOWN`."
                               },
                               "message": {
                                 "type": "string"
