@@ -507,10 +507,9 @@
           },
           "deadlineTime": {
             "type": "string",
+            "format": "date-time",
             "nullable": true,
-            "example": "17:00",
-            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
-            "description": "Deadline time of day in 24-hour `HH:MM` format (e.g. `\"17:00\"`)."
+            "description": "An ISO 8601 date-time, or `null`. The API does not accept it on requests. Set a deadline with `deadlineDate`, or with `deadlineBusinessDays` and `deadlineTimeOfDay`."
           },
           "deadlineTimeOfDay": {
             "type": "object",
