@@ -4427,9 +4427,9 @@
           }
         },
         "responses": {
-          "201": {
+          "200": {
             "$ref": "#/components/responses/ApprovalResponse",
-            "description": "Approval created."
+            "description": "Approval created. This deprecated operation returns `200`, not `201`."
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -4437,8 +4437,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         },
         "deprecated": true
