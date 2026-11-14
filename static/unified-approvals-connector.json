@@ -3,7 +3,7 @@
   "info": {
     "title": "Unified Approvals API",
     "version": "1.0",
-    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThis API is for Adobe IMS **technical accounts** (OAuth Server-to-Server credentials from the Adobe Developer Console). Send the technical account's access token as a Bearer token:\n\n| Header | Value |\n|--------|-------|\n| `Authorization` | `Bearer <access token>` |\n| `x-api-key` | The `client_id` of the technical account |\n| `wf-userid` | The Workfront user the request acts as |\n\nOnly the endpoints documented here are available to technical accounts. A request to any other path is rejected with `401`. A token that does not belong to a technical account, for example a user's token, is also rejected with `401`.\n\n> **Authentication errors**\n>\n> | Condition | HTTP status | Body |\n> |-----------|-------------|------|\n> | `x-api-key` header absent | 403 | `{\"error_code\": \"403000\", \"message\": \"Api Key is required\"}`, returned by the Adobe I/O gateway |\n> | `Authorization` header absent | 4xx | Returned by the Adobe I/O gateway |\n> | Token invalid or expired | 401 | `{\"error_code\": \"401013\", \"message\": \"Oauth token is not valid\"}`, returned by the Adobe I/O gateway |\n> | Token is valid but not a technical account's, or the endpoint is not available to technical accounts | 401 | `{\"message\": \"Unauthorized\", \"statusCode\": 401}` |\n> | A required header such as `wf-userid` or `wf-lane` is missing | 400 | `message` names the missing header |\n>\n> The gateway checks the API key and token before the request reaches the service. The service itself returns the `401` and `400` responses above and does not add an `error_code`.\n\n## Teams on external-storage (ESM) assets\n\nAssets in external storage (ESM) only understand individual users, so a team (`TEAMOB`) cannot be added to their approvals. The API does not expand a team for you: expand it into its members and send them as individual `USER` participants. On these assets, writes that set participants return `400` with one of these `code` values:\n\n- `TEAM_NOT_ALLOWED_ON_ESM` \u2014 a participant has `participantType` `TEAMOB`.\n- `PARTICIPANT_TYPE_REQUIRED` \u2014 a participant's `participantType` is missing or is not `USER` or `TEAMOB`. Always send `participantType` explicitly, because a missing type is otherwise read as `USER`, which would let a team through unnoticed. `POST \u2026/stages` and `POST /grouped-approvals` already reject a value that is not `USER` or `TEAMOB` as an ordinary `400` without this `code`, and `POST \u2026/stages` does the same for a missing `participantType`.\n\nThe check runs when you create or replace stages, update a stage with `participants`, add participants, create a grouped approval, or send the full-state `PATCH` of a grouped approval. Assets that are not in external storage are unaffected, and teams stay valid on them.\n\n## Errors\n\nEvery error response has `message` and `statusCode`. Errors that come from a business rule also carry a stable `code` in `response.code`; branch on that rather than on `message`. A `503` may include a `Retry-After` header, given in seconds or as an HTTP date. If it is absent, wait and retry with backoff. `POST /api/v1/templates` is not idempotent, so if a create times out, list the templates before you retry it.\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path |\n|-----|-----------|\n| Approvals | `/api/v1/approvals` |\n| Grouped Approvals | `/api/v1/grouped-approvals` |\n| Templates | `/api/v1/templates` |\n| Bots | `/api/v1/bots` |\n| Bot Reviews | `/api/v1/bot-reviews` |\n| Search | `/api/v1/search` |\n\nAll endpoints use the authentication described above.\n",
+    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThis API is for Adobe IMS **technical accounts** (OAuth Server-to-Server credentials from the Adobe Developer Console). Send the technical account's access token as a Bearer token:\n\n| Header | Value |\n|--------|-------|\n| `Authorization` | `Bearer <access token>` |\n| `x-api-key` | The `client_id` of the technical account |\n| `wf-userid` | The Workfront user the request acts as |\n\nOnly the endpoints documented here are available to technical accounts. A request to any other path is rejected with `401`. A token that does not belong to a technical account, for example a user's token, is also rejected with `401`.\n\n> **Authentication errors**\n>\n> | Condition | HTTP status | Body |\n> |-----------|-------------|------|\n> | `x-api-key` header absent | 403 | `{\"error_code\": \"403000\", \"message\": \"Api Key is required\"}`, returned by the Adobe I/O gateway |\n> | `Authorization` header absent | 4xx | Returned by the Adobe I/O gateway |\n> | Token invalid or expired | 401 | `{\"error_code\": \"401013\", \"message\": \"Oauth token is not valid\"}`, returned by the Adobe I/O gateway |\n> | Token is valid but not a technical account's, or the endpoint is not available to technical accounts | 401 | `{\"message\": \"Unauthorized\", \"statusCode\": 401}` |\n> | A required header such as `wf-userid` or `wf-lane` is missing | 400 | `message` names the missing header |\n>\n> The gateway checks the API key and token before the request reaches the service. The service itself returns the `401` and `400` responses above and does not add an `error_code`.\n\n## Teams on external-storage (ESM) assets\n\nAssets in external storage (ESM) only understand individual users, so a team (`TEAMOB`) cannot be added to their approvals. The API does not expand a team for you: expand it into its members and send them as individual `USER` participants. On these assets, writes that set participants return `400` with one of these `code` values:\n\n- `TEAM_NOT_ALLOWED_ON_ESM` \u2014 a participant has `participantType` `TEAMOB`.\n- `PARTICIPANT_TYPE_REQUIRED` \u2014 a participant's `participantType` is missing or is not `USER` or `TEAMOB`. Always send `participantType` explicitly, because a missing type is otherwise read as `USER`, which would let a team through unnoticed. `POST \u2026/stages` and `POST /grouped-approvals` already reject a value that is not `USER` or `TEAMOB` as an ordinary `400` without this `code`, and `POST \u2026/stages` does the same for a missing `participantType`.\n\nThe check runs when you create or replace stages, update a stage with `participants`, add participants, create a grouped approval, or send the full-state `PATCH` of a grouped approval. Assets that are not in external storage are unaffected, and teams stay valid on them.\n\n## Errors\n\nEvery error response has `message` and `statusCode`. Errors that come from a business rule also carry a stable `code` in `response.code`; branch on that rather than on `message`. A `503` may include a `Retry-After` header, given in seconds or as an HTTP date. If it is absent, wait and retry with backoff. `POST /api/v1/templates` is not idempotent, so if a create times out, list the templates before you retry it.\n\nCommon `code` values:\n\n| `code` | Status | Meaning | Retry? |\n|--------|--------|---------|--------|\n| `APPROVAL_OWNED_BY_GROUP` | 409 | The approval belongs to a grouped approval, so its stages and participants cannot be edited directly. `response.details.groupedApprovalGuid` names the group. | No. Change it with `PATCH /api/v1/grouped-approvals/{groupGuid}`. |\n| `GROUP_WITHDRAWN` | 409 | A write to a withdrawn grouped approval. | No. |\n| `GROUP_HAS_DECIDED_STAGE` | 409 | Adding assets while a stage of the grouped approval is decided. | No. |\n| `GROUP_WOULD_BE_EMPTY` | 409 | Removing the last asset of a grouped approval. | No. Delete the grouped approval instead. |\n| `STAGE_ID_CONFLICT`, `DUPLICATE_PATH_IN_GROUP` | 409 | A new stage or path reuses an existing `stageId` or `pathId`. | No. Use a new ID. |\n| `STAGE_NOT_EDITABLE` | 409 | The stage is locked. | No, not until it is unlocked. |\n| `FRAME_ASSET_NOT_READY` | 409 | An asset in external storage has not finished syncing. `response.assetIds` lists the assets. | Yes, once the assets are ready. |\n| `GROUP_ASSET_CAP_EXCEEDED` | 400 | The grouped approval would hold more than 25 assets. | No. |\n| `GROUP_ASSET_STAGE_CAP_EXCEEDED` | 400 | Assets times stages across all paths would exceed 100. | No. |\n| `GROUPED_APPROVALS_DISABLED` | 403 | Grouped approvals are not enabled for the customer. | No. |\n| `FRAME_UNAVAILABLE` | 503 | Frame could not be reached. | Yes, after any `Retry-After`. |\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path |\n|-----|-----------|\n| Approvals | `/api/v1/approvals` |\n| Grouped Approvals | `/api/v1/grouped-approvals` |\n| Templates | `/api/v1/templates` |\n| Bots | `/api/v1/bots` |\n| Bot Reviews | `/api/v1/bot-reviews` |\n| Search | `/api/v1/search` |\n\nAll endpoints use the authentication described above.\n",
     "contact": {
       "name": "",
       "email": "",
@@ -1642,7 +1642,7 @@
           },
           "response": {
             "type": "object",
-            "description": "The upstream or business error body. For business errors it includes `code` and often `details` (for example `assetIds` on `FRAME_ASSET_NOT_READY`)."
+            "description": "The upstream or business error body. Business errors include `code`, and some add fields next to it, for example `assetIds` on `FRAME_ASSET_NOT_READY` and `details.groupedApprovalGuid` on `APPROVAL_OWNED_BY_GROUP`."
           },
           "source": {
             "type": "string",
@@ -4157,7 +4157,7 @@
         }
       },
       "ConflictResponse": {
-        "description": "Conflict \u2014 the request conflicts with the current state. The reason is in `response.code`.",
+        "description": "Conflict \u2014 the request conflicts with the current state. Branch on `response.code` (see *Errors*). A conflict is not transient unless its `code` says it can be retried.",
         "content": {
           "application/json": {
             "schema": {
@@ -4815,6 +4815,9 @@
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
           }
@@ -4892,6 +4895,9 @@
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
           }
@@ -4956,6 +4962,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
@@ -5023,6 +5032,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
           },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
@@ -5105,6 +5117,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
           },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
@@ -5847,6 +5862,9 @@
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
           }
@@ -5930,6 +5948,9 @@
           },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
@@ -7785,7 +7806,7 @@
         ],
         "summary": "Manage assets on a grouped approval",
         "operationId": "manageGroupedApprovalAssets",
-        "description": "Adds and/or removes document versions on a grouped approval. Send `add` and/or `remove` arrays of document version IDs.",
+        "description": "Adds and/or removes document versions on a grouped approval. Send `add` and/or `remove` arrays of document version IDs. A grouped approval holds at most 25 assets, so an add that would go over returns `400 GROUP_ASSET_CAP_EXCEEDED`. Adding assets while a stage is decided returns `409 GROUP_HAS_DECIDED_STAGE`, and removing the last asset returns `409 GROUP_WOULD_BE_EMPTY`; delete the grouped approval instead.",
         "security": [
           {
             "Bearer": []
