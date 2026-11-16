@@ -4193,7 +4193,7 @@
         }
       },
       "UnprocessableEntityResponse": {
-        "description": "Unprocessable Entity \u2014 a user, team or asset reference in the request could not be resolved.",
+        "description": "Unprocessable Entity \u2014 a participant or asset ID in the request could not be resolved, for example it does not match a Workfront user, team or document version, or it matches more than one. The reason is in `response.code`.",
         "content": {
           "application/json": {
             "schema": {
