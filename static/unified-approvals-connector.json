@@ -2184,7 +2184,7 @@
           },
           "participantMetadata": {
             "type": "object",
-            "description": "Free-form metadata for this participant: at most 10 keys, keys up to 255 characters (no `.`, `$` prefix, or the names `add`, `update`, `remove`), and string, number or boolean values (strings up to 255 characters).",
+            "description": "Free-form metadata for this participant: at most 10 keys, keys up to 255 characters (no `.`, no `$` prefix, and not `__proto__`, `constructor`, `prototype`, `add`, `update` or `remove`), and string, number or boolean values (strings up to 255 characters).",
             "additionalProperties": {
               "oneOf": [
                 {
@@ -2728,7 +2728,7 @@
           "participantMetadata": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Free-form metadata for this participant: at most 10 keys, keys up to 255 characters (no `.`, `$` prefix, or the names `add`, `update`, `remove`), and string, number or boolean values (strings up to 255 characters)."
+            "description": "Free-form metadata for this participant: at most 10 keys, keys up to 255 characters (no `.`, no `$` prefix, and not `__proto__`, `constructor`, `prototype`, `add`, `update` or `remove`), and string, number or boolean values (strings up to 255 characters)."
           }
         }
       },
@@ -2765,7 +2765,7 @@
           "participantMetadata": {
             "type": "object",
             "additionalProperties": false,
-            "description": "Metadata operations, applied remove, then update, then add. Same key and value rules as when adding a participant; a participant holds at most 10 keys. `update` of a missing key is reported as `METADATA_KEY_NOT_FOUND`.",
+            "description": "Metadata operations, applied remove, then update, then add. Same key and value rules as when adding a participant, except that `add`, `update` and `remove` are allowed as key names; a participant holds at most 10 keys. `update` of a missing key is reported as `METADATA_KEY_NOT_FOUND`.",
             "properties": {
               "add": {
                 "type": "object",
