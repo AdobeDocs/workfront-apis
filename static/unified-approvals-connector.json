@@ -509,7 +509,7 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "An ISO 8601 date-time, or `null`. The API does not accept it on requests. Set a deadline with `deadlineDate`, or with `deadlineBusinessDays` and `deadlineTimeOfDay`."
+            "description": "An ISO 8601 date-time, or `null`. Requests may include it, but it is ignored. Set a deadline with `deadlineDate`, or with `deadlineBusinessDays` and `deadlineTimeOfDay`."
           },
           "deadlineTimeOfDay": {
             "type": "object",
