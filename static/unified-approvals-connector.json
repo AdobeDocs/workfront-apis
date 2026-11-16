@@ -5154,7 +5154,7 @@
         ],
         "summary": "Make decisions on multiple approvals",
         "operationId": "makeBulkDecisions",
-        "description": "Records the requesting user's decision on several assets in one request. Each item names an asset and a decision; set `stageId` to decide a single stage, or omit it to apply the decision to all of the asset's eligible active stages. Items are processed independently and the response contains one result per item in request order, so check `success` on each result rather than relying on the HTTP status alone. A decision that already exists is updated.",
+        "description": "Records the requesting user's decision on several assets in one request. Each item names an asset and a decision; set `stageId` to decide a single stage, or omit it to apply the decision to all of the asset's eligible active stages. Items are processed independently, in request order. The response has one result per decided stage, not one per item: an item without `stageId` that applies to three stages returns three results, one for each. An item that fails before its stages are chosen, for example because the approval is not found, returns a single error result. Match results to items by `assetType`, `assetId` and `stageId`, and check `success` on each result rather than relying on the HTTP status alone. A decision that already exists is updated.",
         "security": [
           {
             "Bearer": []
@@ -5263,7 +5263,7 @@
         },
         "responses": {
           "200": {
-            "description": "One result per request item, in request order.",
+            "description": "One result per decided stage, grouped by item in request order. An item that fails before its stages are chosen returns one error result.",
             "content": {
               "application/json": {
                 "schema": {
@@ -5287,7 +5287,7 @@
                           },
                           "stageId": {
                             "type": "string",
-                            "nullable": true
+                            "description": "The stage the decision was recorded on."
                           },
                           "success": {
                             "type": "boolean",
@@ -5320,7 +5320,8 @@
                           },
                           "stageId": {
                             "type": "string",
-                            "nullable": true
+                            "nullable": true,
+                            "description": "The stage the item named, or `null` if it did not name one."
                           },
                           "success": {
                             "type": "boolean",
@@ -5353,7 +5354,7 @@
                     {
                       "assetType": "DOCV",
                       "assetId": "69b1ea8500006ebab6a5eb8e622d4b09",
-                      "stageId": null,
+                      "stageId": "019dd8a16cb17a58a3b73fc991f16e06",
                       "success": true
                     },
                     {
