@@ -7177,7 +7177,7 @@
           "Approvals"
         ],
         "summary": "Bulk lookup approvals by asset ID",
-        "description": "Looks up the approvals for a list of asset IDs of one asset type. Provide the asset type in the path and the `assetIds` in the body. The response has one element per requested ID, in the order you sent them. An asset with no approval is returned as a stub with only `assetId` and `frameSyncStatus`. `frameSyncStatus` is `true` or `false` once Frame sync has been recorded for the asset, and `null` otherwise.\n\n`assetIds` is required. A request with no body returns `400`, and a body without `assetIds` is not supported and currently fails with `500`.\n\nWithout `view`, each approval has summary fields only, such as `approvalGuid`, `assetId`, `status`, `decision`, the lock state and dates, and no stages or participants. Set `view` to `full` to include them. If you set `view`, the matching approvals are read in pages of 100 and a request that matches more than 1,000 returns `500`. To filter by project, folder, status or participant instead, use `POST /api/v1/search/approvals`.",
+        "description": "Looks up the approvals for a list of asset IDs of one asset type. Provide the asset type in the path and the `assetIds` in the body. The response normally has one element per requested ID, in the order you sent them. If the service cannot read Frame sync status, it returns the approvals in its own order with no stubs for assets that have no approval, so match results to assets by `assetId`, not by position. An asset with no approval is returned as a stub with only `assetId` and `frameSyncStatus`. `frameSyncStatus` is `true` or `false` once Frame sync has been recorded for the asset, and `null` otherwise.\n\n`assetIds` is required. A request with no body returns `400`. A body without `assetIds` is not supported and currently fails with `500`.\n\nWithout `view`, each approval has summary fields only, such as `approvalGuid`, `assetId`, `status`, `decision`, the lock state and dates, and no stages or participants. Set `view` to `full` to include them. If you set `view`, the matching approvals are read in pages of 100 and a request that matches more than 1,000 returns `500`. To filter by project, folder, status or participant instead, use `POST /api/v1/search/approvals`.",
         "operationId": "bulkLookupApprovalsByAssetType",
         "security": [
           {
@@ -7275,7 +7275,7 @@
             }
           },
           "400": {
-            "description": "Bad Request. Returned for validation errors, or when the request body is an empty object (`{}`).",
+            "description": "Bad Request. Returned when the body is missing or does not match the schema, for example an unknown `view`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -7288,7 +7288,14 @@
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+            "description": "Internal Server Error. Also returned when the body has no `assetIds`, which is not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
