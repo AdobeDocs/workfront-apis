@@ -1419,7 +1419,7 @@
           },
           "sharedWith": {
             "type": "array",
-            "description": "Who the template is shared with, view-only. Each item has exactly one of `userId`, `tenantId` or `companyId`. The creator always has access and is ignored if listed.\n\n- `{ \"userId\": \"...\" }` shares with one user.\n- `{ \"tenantId\": \"...\" }` shares with everyone in the customer. `tenantId` must be your own customer ID. When present, `userId` and `companyId` items add nothing and are not stored.\n- `{ \"companyId\": \"...\" }` shares with a company. Only honored for customers that have company sharing enabled; otherwise the item is ignored.\n\nOn create, omitting `sharedWith` leaves the template private. On `PUT` and `PATCH`, omitting it leaves sharing unchanged and sending `[]` removes all sharing.",
+            "description": "Who the template is shared with. Anyone it is shared with can see it, edit it, and change who it is shared with; only the owner counts as its owner. Each item has exactly one of `userId`, `tenantId` or `companyId`. The creator always has access and is ignored if listed.\n\n- `{ \"userId\": \"...\" }` shares with one user.\n- `{ \"tenantId\": \"...\" }` shares with everyone in the customer. `tenantId` must be your own customer ID. When present, `userId` and `companyId` items add nothing and are not stored.\n- `{ \"companyId\": \"...\" }` shares with a company. Only honored for customers that have company sharing enabled; otherwise the item is ignored.\n\nOn create, omitting `sharedWith` leaves the template private. On `PUT` and `PATCH`, omitting it leaves sharing unchanged and sending `[]` removes all sharing.",
             "items": {
               "type": "object",
               "properties": {
@@ -1437,7 +1437,7 @@
                   "enum": [
                     "VIEW_ACCESS"
                   ],
-                  "description": "Optional. Shared access is always view-only; `EDIT_ACCESS` returns `400`."
+                  "description": "Optional. Send `VIEW_ACCESS` or leave it out; `EDIT_ACCESS` returns `400`. It does not limit what the recipient can do: anyone the template is shared with can edit it."
                 }
               }
             }
@@ -6369,7 +6369,7 @@
           "Templates"
         ],
         "summary": "List templates",
-        "description": "Returns the approval templates the current user can view: the user's own templates, templates shared with the user, and templates shared with everyone in the customer. Use `filters` to narrow to one of those sets. Returns `404` if the customer has no templates.",
+        "description": "Returns the approval templates the current user can view: the user's own templates, templates shared with the user, and templates shared with everyone in the customer. Users can edit any template they can view. Use `filters` to narrow to one of those sets. Returns `404` if the customer has no templates.",
         "operationId": "getTemplates",
         "security": [
           {
@@ -6390,7 +6390,7 @@
               ],
               "default": "all"
             },
-            "description": "Which templates to return. `all` is every template the user can view, `owned` is the user's own templates (the ones they can edit), and `shared` is the templates shared with the user."
+            "description": "Which templates to return. `all` is every template the user can view. `owned` is the templates the user owns. `shared` is the templates shared with the user that they do not own."
           },
           {
             "name": "filterByMyCompany",
@@ -6602,7 +6602,7 @@
           "Templates"
         ],
         "summary": "Replace template",
-        "description": "Replaces an approval template with the supplied body. Use `PATCH` to change only some fields. Requires a Full license, and permission to edit the template. `sharedWith` is replaced by the list you send, and left unchanged if you omit it.",
+        "description": "Replaces an approval template with the supplied body. Use `PATCH` to change only some fields. Requires a Full license, and permission to edit the template. The owner and anyone the template is shared with can edit it. `sharedWith` is replaced by the list you send, and left unchanged if you omit it.",
         "operationId": "putTemplate",
         "security": [
           {
@@ -6681,7 +6681,7 @@
           "Templates"
         ],
         "summary": "Update template",
-        "description": "Partially updates an approval template. Requires a Full license, and permission to edit the template. No field is required; send only the ones to change. `sharedWith`, if sent, replaces the whole list; omit it to leave sharing unchanged.",
+        "description": "Partially updates an approval template. Requires a Full license, and permission to edit the template. The owner and anyone the template is shared with can edit it. No field is required; send only the ones to change. `sharedWith`, if sent, replaces the whole list; omit it to leave sharing unchanged.",
         "operationId": "patchTemplate",
         "security": [
           {
