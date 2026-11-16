@@ -465,7 +465,10 @@
             },
             "currentUserMadeDecision": false
           }
-        }
+        },
+        "required": [
+          "approvalGuid"
+        ]
       },
       "ApprovalStage": {
         "type": "object",
@@ -1724,7 +1727,7 @@
         "type": "object",
         "additionalProperties": true,
         "description": "Metadata about the participant, set by the service from the user's or team's Workfront profile. Any `participantMetadata` you send on a create, replace, update or add-participant request is replaced by these values. The shape varies by `participantType`:\n\n**`USER` participants**\n```\n{\n  \"isBot\": boolean,\n  \"participantIdType\": \"wf_guid\" | \"ims\" | \"email\",\n  \"wfUserId\": \"string\",\n  \"emailAddr\": \"string\"  // omitted when not available\n}\n```\n\n**`TEAMOB` (team) participants**\n```\n{\n  \"isBot\": boolean\n}\n```\n\nSee `ParticipantUserMetadata` and `ParticipantTeamMetadata` for the typed shapes. Additional context-specific properties may be present; consumers should treat unknown keys as informational.",
-        "oneOf": [
+        "anyOf": [
           {
             "$ref": "#/components/schemas/ParticipantUserMetadata"
           },
@@ -1826,7 +1829,7 @@
         "type": "object",
         "additionalProperties": true,
         "description": "Workfront-derived enrichment fields for the participant. The shape depends on `participantType` \u2014 see `ParticipantUserWfMetadata` and `ParticipantTeamWfMetadata`.",
-        "oneOf": [
+        "anyOf": [
           {
             "$ref": "#/components/schemas/ParticipantUserWfMetadata"
           },
@@ -2096,6 +2099,16 @@
             "isEditable": true,
             "hasLicenseAccess": true
           }
+        },
+        "not": {
+          "required": [
+            "approvalGuid"
+          ],
+          "properties": {
+            "approvalGuid": {
+              "type": "string"
+            }
+          }
         }
       },
       "EmptyApproval": {
@@ -2115,6 +2128,19 @@
         "example": {
           "assetId": "69b1ea8500006ebab6a5eb8e622d4b09",
           "frameSyncStatus": null
+        },
+        "required": [
+          "assetId"
+        ],
+        "not": {
+          "required": [
+            "approvalGuid"
+          ],
+          "properties": {
+            "approvalGuid": {
+              "type": "string"
+            }
+          }
         }
       },
       "TemplateDeleteResult": {
