@@ -2168,7 +2168,7 @@
           "id": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{32}$",
-            "description": "Workfront user or team ID."
+            "description": "The Workfront ID of the user (`wfUserId`), or of the team when `type` is `TEAMOB`. It is not the `identityGuid` that responses return."
           },
           "type": {
             "type": "string",
@@ -2180,7 +2180,7 @@
           },
           "role": {
             "type": "string",
-            "description": "Participant role on the stage (e.g. approver, reviewer)."
+            "description": "Participant role on the stage: `approver` or `reviewer`, in any letter case. Any other value returns `400`."
           },
           "participantMetadata": {
             "type": "object",
@@ -2250,10 +2250,14 @@
             "description": "Time-of-day paired with deadlineBusinessDays.",
             "properties": {
               "hours": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23
               },
               "minutes": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59
               }
             }
           },
@@ -2465,16 +2469,20 @@
             "description": "Time-of-day paired with deadlineBusinessDays.",
             "properties": {
               "hours": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23
               },
               "minutes": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59
               }
             }
           },
           "metadata": {
             "type": "object",
-            "description": "Free-form stage metadata: at most 10 keys, keys up to 255 characters, string values up to 1,000 characters.",
+            "description": "Free-form stage metadata: at most 10 keys, keys up to 255 characters, string values up to 1,000 characters. It is named `metadata` here, but `stageMetadata` in responses and on the create and add-stage requests. A `stageMetadata` field is ignored here.",
             "additionalProperties": {
               "type": "string"
             }
@@ -2614,10 +2622,14 @@
             "description": "Time-of-day paired with deadlineBusinessDays.",
             "properties": {
               "hours": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23
               },
               "minutes": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59
               }
             }
           },
@@ -2652,7 +2664,8 @@
           },
           "deadlineDate": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "description": "Absolute deadline for the stage."
           }
         }
       },
@@ -2692,7 +2705,7 @@
           "id": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{32}$",
-            "description": "Workfront user or team ID."
+            "description": "The Workfront ID of the user (`wfUserId`), or of the team when `type` is `TEAMOB`. It is not the `identityGuid` that responses return."
           },
           "type": {
             "type": "string",
@@ -2706,9 +2719,11 @@
             "type": "string",
             "enum": [
               "approver",
-              "reviewer"
+              "reviewer",
+              "APPROVER",
+              "REVIEWER"
             ],
-            "description": "Participant role (case-insensitive; APPROVER/REVIEWER also accepted)."
+            "description": "Participant role: `approver` or `reviewer`. The upper-case forms are also accepted."
           },
           "participantMetadata": {
             "type": "object",
@@ -2727,7 +2742,8 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^[a-fA-F0-9]{32}$"
+            "pattern": "^[a-fA-F0-9]{32}$",
+            "description": "The Workfront ID of the user (`wfUserId`), or of the team when `type` is `TEAMOB`. It is not the `identityGuid` that responses return."
           },
           "type": {
             "type": "string",
@@ -2740,9 +2756,11 @@
             "type": "string",
             "enum": [
               "approver",
-              "reviewer"
+              "reviewer",
+              "APPROVER",
+              "REVIEWER"
             ],
-            "description": "Participant role (case-insensitive; APPROVER/REVIEWER also accepted)."
+            "description": "Participant role: `approver` or `reviewer`. The upper-case forms are also accepted."
           },
           "participantMetadata": {
             "type": "object",
@@ -2778,7 +2796,8 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^[a-fA-F0-9]{32}$"
+            "pattern": "^[a-fA-F0-9]{32}$",
+            "description": "The Workfront ID of the user (`wfUserId`), or of the team when `type` is `TEAMOB`. It is not the `identityGuid` that responses return."
           },
           "type": {
             "type": "string",
@@ -3108,10 +3127,14 @@
             "description": "The time of day the stage deadline falls on.",
             "properties": {
               "hours": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23
               },
               "minutes": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59
               }
             }
           },
@@ -3435,10 +3458,14 @@
             "nullable": true,
             "properties": {
               "hours": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23
               },
               "minutes": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59
               }
             }
           },
