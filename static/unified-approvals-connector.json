@@ -4480,8 +4480,14 @@
         },
         "responses": {
           "200": {
-            "$ref": "#/components/responses/ApprovalResponse",
-            "description": "Approval created. This deprecated operation returns `200`, not `201`."
+            "description": "Approval created. This deprecated operation returns `200`, not `201`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Approval"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
