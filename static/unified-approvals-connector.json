@@ -303,21 +303,21 @@
             "items": {
               "$ref": "#/components/schemas/ApprovalStage"
             },
-            "description": "Ordered list of stages on this approval."
+            "description": "Ordered list of stages on this approval. Present when the approval has one path. When it has several paths, the stages are in `paths[].stages`."
           },
           "structure": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovalStructure"
             },
-            "description": "Stage dependency graph. Each entry maps a `stageId` to its `parentIds`, defining the order in which stages activate."
+            "description": "Stage dependency graph. Each entry maps a `stageId` to its `parentIds`, defining the order in which stages activate. Present when the approval has one path. When it has several paths, see `paths[].structure`."
           },
           "paths": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovalPath"
             },
-            "description": "Parallel approval paths on this approval. Each path has its own `stages` and `structure`, allowing independent stage sequences to run side by side. Empty for single-path approvals."
+            "description": "The approval's paths. Every approval has at least one. Each path has its own `stages` and `structure`, so independent stage sequences can run side by side."
           },
           "userInfo": {
             "type": "object",
@@ -481,7 +481,7 @@
           "pathId": {
             "type": "string",
             "example": "design-path",
-            "description": "ID of the path this stage belongs to, when the stage is part of a multi-path approval."
+            "description": "ID of the path this stage belongs to."
           },
           "name": {
             "type": "string"
@@ -820,7 +820,7 @@
       },
       "ApprovalPath": {
         "type": "object",
-        "description": "One parallel path on an approval that has multiple independent stage sequences. Each path carries its own `stages` and `structure`, scoped the same way as the top-level fields of the same name on `Approval`.",
+        "description": "One path of an approval. Each path carries its own `stages` and `structure`, scoped the same way as the top-level fields of the same name on `Approval`.",
         "properties": {
           "pathId": {
             "type": "string",
@@ -969,7 +969,7 @@
           "pathId": {
             "type": "string",
             "example": "design-path",
-            "description": "ID of the path this stage belongs to, when the stage is part of a multi-path approval."
+            "description": "ID of the path this stage belongs to."
           }
         }
       },
