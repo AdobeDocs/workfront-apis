@@ -1120,21 +1120,22 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TemplateStage"
-            }
+            },
+            "description": "Ordered list of stages on this template. Present when the template has one path. When it has several paths, the stages are in `paths[].stages`."
           },
           "structure": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovalStructure"
             },
-            "description": "Workflow structure defining stage ordering and trigger dependencies."
+            "description": "Workflow structure defining stage ordering and trigger dependencies. Present when the template has one path. When it has several paths, see `paths[].structure`."
           },
           "paths": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TemplatePath"
             },
-            "description": "Parallel paths on this template. Each path has its own `stages` and `structure`, allowing independent stage sequences to run side by side. Empty for single-path templates."
+            "description": "The template's paths. Every template has at least one. Each path has its own `stages` and `structure`, so independent stage sequences can run side by side."
           },
           "sharedWith": {
             "type": "array",
@@ -1299,7 +1300,7 @@
       },
       "TemplatePath": {
         "type": "object",
-        "description": "One parallel path on a template that has multiple independent stage sequences. Each path carries its own `stages` and `structure`, scoped the same way as the top-level fields of the same name on `Template`.",
+        "description": "One path of a template. Each path carries its own `stages` and `structure`, scoped the same way as the top-level fields of the same name on `Template`.",
         "properties": {
           "pathId": {
             "type": "string",
@@ -1386,7 +1387,7 @@
         "description": "Request body for creating or updating a template.",
         "required": [
           "name",
-          "stages"
+          "paths"
         ],
         "properties": {
           "name": {
@@ -1405,20 +1406,13 @@
             "nullable": true,
             "description": "ID of the company this template belongs to, used by the `filterByMyCompany` query parameter. Send `null` to clear it."
           },
-          "stages": {
-            "type": "array",
-            "minItems": 1,
-            "description": "Stages that make up the template, in graph form.",
-            "items": {
-              "$ref": "#/components/schemas/TemplateStageBody"
-            }
-          },
           "paths": {
             "type": "array",
-            "description": "Parallel paths that make up the template, each with its own stages in graph form. Omit for single-path templates.",
+            "description": "The paths that make up the template, each with its own stages in graph form. At least one path is required. A path with a `pathId` updates that path in place, and a path without one is added as a new path.",
             "items": {
               "$ref": "#/components/schemas/TemplatePathBody"
-            }
+            },
+            "minItems": 1
           },
           "sharedWith": {
             "type": "array",
@@ -1448,67 +1442,71 @@
         },
         "example": {
           "name": "Test Template",
-          "stages": [
+          "paths": [
             {
-              "stageId": "stage-1",
-              "name": "Stage 1",
-              "parentIds": [],
-              "triggers": [
+              "name": "Review path",
+              "stages": [
                 {
-                  "type": "activation",
-                  "when": "onCreate"
-                }
-              ],
-              "deadlineBusinessDays": 3,
-              "deadlineTimeOfDay": {
-                "hours": 17,
-                "minutes": 0
-              },
-              "participants": [
+                  "stageId": "stage-1",
+                  "name": "Stage 1",
+                  "parentIds": [],
+                  "triggers": [
+                    {
+                      "type": "activation",
+                      "when": "onCreate"
+                    }
+                  ],
+                  "deadlineBusinessDays": 3,
+                  "deadlineTimeOfDay": {
+                    "hours": 17,
+                    "minutes": 0
+                  },
+                  "participants": [
+                    {
+                      "participantId": "user-123",
+                      "participantType": "USER",
+                      "participantRole": "approver",
+                      "participantMetadata": {}
+                    }
+                  ]
+                },
                 {
-                  "participantId": "user-123",
-                  "participantType": "USER",
-                  "participantRole": "approver",
-                  "participantMetadata": {}
-                }
-              ]
-            },
-            {
-              "stageId": "stage-2",
-              "name": "Stage 2",
-              "parentIds": [
-                "stage-1"
-              ],
-              "triggers": [
-                {
-                  "type": "activation",
-                  "when": "onStagesComplete",
-                  "parameters": {
-                    "stages": [
-                      "stage-1"
-                    ],
-                    "allowedDecisions": [
-                      "approved"
-                    ]
-                  }
-                }
-              ],
-              "deadlineBusinessDays": 2,
-              "deadlineTimeOfDay": {
-                "hours": 12,
-                "minutes": 30
-              },
-              "participants": [
-                {
-                  "participantId": "user-456",
-                  "participantType": "USER",
-                  "participantRole": "reviewer",
-                  "participantMetadata": {}
+                  "stageId": "stage-2",
+                  "name": "Stage 2",
+                  "parentIds": [
+                    "stage-1"
+                  ],
+                  "triggers": [
+                    {
+                      "type": "activation",
+                      "when": "onStagesComplete",
+                      "parameters": {
+                        "stages": [
+                          "stage-1"
+                        ],
+                        "allowedDecisions": [
+                          "approved"
+                        ]
+                      }
+                    }
+                  ],
+                  "deadlineBusinessDays": 2,
+                  "deadlineTimeOfDay": {
+                    "hours": 12,
+                    "minutes": 30
+                  },
+                  "participants": [
+                    {
+                      "participantId": "user-456",
+                      "participantType": "USER",
+                      "participantRole": "reviewer",
+                      "participantMetadata": {}
+                    }
+                  ]
                 }
               ]
             }
-          ],
-          "paths": []
+          ]
         }
       },
       "TemplateStageBody": {
@@ -1607,16 +1605,15 @@
       },
       "TemplatePathBody": {
         "type": "object",
-        "description": "One parallel path in graph form, used when creating or updating a multi-path template.",
+        "description": "One path of a template, in graph form. Every template has at least one path.",
         "required": [
-          "pathId",
           "stages"
         ],
         "properties": {
           "pathId": {
             "type": "string",
             "example": "design-path",
-            "description": "Identifier for this path. Must be unique across all paths on the template."
+            "description": "Identifier of an existing path to update in place. Leave it out to add a new path. Must be unique across all paths on the template."
           },
           "name": {
             "type": "string",
@@ -4398,7 +4395,7 @@
           "Approvals"
         ],
         "summary": "Create approval (deprecated)",
-        "description": "**Deprecated.** Use `POST /api/v1/approvals/{assetType}/{assetId}/stages` instead. It creates the approval and its stages in one call and is the supported path for every asset type; this operation only works for assets in external storage (ESM), does not work for other assets, and will be removed.\n\nCreates an approval with the supplied `paths`. The paths in the body define the approval structure and are used as-is. `templateId` is optional metadata: the caller is expected to have fetched the template separately (`GET /api/v1/templates/{templateId}`) and copied its stages into a path in the request body. When `templateId` is supplied, it is recorded on the new approval and the corresponding template's `usageCount` is incremented and `lastUsedOnDate` is refreshed.",
+        "description": "**Deprecated.** Use `POST /api/v1/approvals/{assetType}/{assetId}/stages` instead. It creates the approval and its stages in one call and is the supported path for every asset type; this operation only works for assets in external storage (ESM), does not work for other assets, and will be removed.\n\nCreates an approval with the supplied `paths`. The paths in the body define the approval structure and are used as-is. `templateId` is optional metadata: the caller is expected to have fetched the template separately (`GET /api/v1/templates/{templateId}`) and copied its `paths` into the request body. When `templateId` is supplied, it is recorded on the new approval and the corresponding template's `usageCount` is incremented and `lastUsedOnDate` is refreshed.",
         "operationId": "createApproval",
         "security": [
           {
@@ -4444,7 +4441,7 @@
                   "paths": {
                     "type": "array",
                     "minItems": 1,
-                    "description": "The approval's paths, each with its own `stages`. The server uses them as-is: it does not look up or expand any referenced template. To create an approval from a template, fetch the template (`GET /api/v1/templates/{templateId}`), copy its stages into a path here, and optionally pass the same `templateId` to record the source on the approval and increment its usage counter. At least one path is required.",
+                    "description": "The approval's paths, each with its own `stages`. The server uses them as-is: it does not look up or expand any referenced template. To create an approval from a template, fetch the template (`GET /api/v1/templates/{templateId}`), copy its `paths` here, and optionally pass the same `templateId` to record the source on the approval and increment its usage counter. At least one path is required.",
                     "items": {
                       "$ref": "#/components/schemas/ApprovalPathCreate"
                     }
@@ -6613,7 +6610,7 @@
           "Templates"
         ],
         "summary": "Replace template",
-        "description": "Replaces an approval template with the supplied body. Use `PATCH` to change only some fields. Requires a Full license, and permission to edit the template. The owner and anyone the template is shared with can edit it. `sharedWith` is replaced by the list you send, and left unchanged if you omit it.",
+        "description": "Replaces an approval template with the supplied body. Use `PATCH` to change only some fields. Requires a Full license, and permission to edit the template. The owner and anyone the template is shared with can edit it. A path in `paths` with a `pathId` updates that path in place, and a path without one is added. `sharedWith` is replaced by the list you send, and left unchanged if you omit it.",
         "operationId": "putTemplate",
         "security": [
           {
@@ -6692,7 +6689,7 @@
           "Templates"
         ],
         "summary": "Update template",
-        "description": "Partially updates an approval template. Requires a Full license, and permission to edit the template. The owner and anyone the template is shared with can edit it. No field is required; send only the ones to change. `sharedWith`, if sent, replaces the whole list; omit it to leave sharing unchanged.",
+        "description": "Partially updates an approval template. Requires a Full license, and permission to edit the template. The owner and anyone the template is shared with can edit it. A path in `paths` with a `pathId` updates that path in place, and a path without one is added. No field is required; send only the ones to change. `sharedWith`, if sent, replaces the whole list; omit it to leave sharing unchanged.",
         "operationId": "patchTemplate",
         "security": [
           {
