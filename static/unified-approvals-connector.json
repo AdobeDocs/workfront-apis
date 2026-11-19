@@ -502,22 +502,17 @@
           "deadlineDate": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "The stage deadline, as an ISO 8601 date-time in UTC."
           },
           "deadlineBusinessDays": {
             "type": "number",
             "nullable": true
           },
-          "deadlineTime": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "description": "An ISO 8601 date-time, or `null`. Requests may include it, but it is ignored. Set a deadline with `deadlineDate`, or with `deadlineBusinessDays` and `deadlineTimeOfDay`."
-          },
           "deadlineTimeOfDay": {
             "type": "object",
             "nullable": true,
-            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM UTC. The hours and minutes are in UTC.",
             "properties": {
               "hours": {
                 "type": "number",
@@ -875,7 +870,8 @@
           "deadlineDate": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "The stage deadline. It is an ISO 8601 date-time in UTC. Convert from your local time first. For example, 5:00 PM MST (UTC\u22127) is `00:00:00Z` the next day."
           },
           "deadlineBusinessDays": {
             "type": "number",
@@ -884,7 +880,7 @@
           "deadlineTimeOfDay": {
             "type": "object",
             "nullable": true,
-            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM UTC. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
             "properties": {
               "hours": {
                 "type": "number",
@@ -1057,9 +1053,6 @@
               "reviewer"
             ],
             "description": "Role this participant plays on the stage.\n\n- `approver` \u2014 Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` \u2014 Non-binding; can mark reviewed but does not block approval progression.\n\nThe role, combined with the participant's current decision, also drives the `userInfo.action` value on every approval response \u2014 see [`Approval.userInfo.action`](#section/Schemas/Approval) for the role/decision \u2192 action mapping."
-          },
-          "participantMetadata": {
-            "$ref": "#/components/schemas/ParticipantMetadata"
           }
         }
       },
@@ -1276,7 +1269,7 @@
           "deadlineTimeOfDay": {
             "type": "object",
             "nullable": true,
-            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM UTC. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
             "properties": {
               "hours": {
                 "type": "number",
@@ -1546,7 +1539,7 @@
           "deadlineTimeOfDay": {
             "type": "object",
             "nullable": true,
-            "description": "Time-of-day component of the stage deadline. An object with two numeric properties — `hours` (0–23) and `minutes` (0–59) — that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM UTC. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
             "properties": {
               "hours": {
                 "type": "number",
@@ -1723,7 +1716,7 @@
       "ParticipantMetadata": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Metadata about the participant, set by the service from the user's or team's Workfront profile. Any `participantMetadata` you send on a create, replace, update or add-participant request is replaced by these values. The shape varies by `participantType`:\n\n**`USER` participants**\n```\n{\n  \"isBot\": boolean,\n  \"participantIdType\": \"wf_guid\" | \"ims\" | \"email\",\n  \"wfUserId\": \"string\",\n  \"emailAddr\": \"string\"  // omitted when not available\n}\n```\n\n**`TEAMOB` (team) participants**\n```\n{\n  \"isBot\": boolean\n}\n```\n\nSee `ParticipantUserMetadata` and `ParticipantTeamMetadata` for the typed shapes. Additional context-specific properties may be present; consumers should treat unknown keys as informational.",
+        "description": "Metadata about the participant, set by the service from the user's or team's Workfront profile. The shape varies by `participantType`:\n\n**`USER` participants**\n```\n{\n  \"isBot\": boolean,\n  \"participantIdType\": \"wf_guid\" | \"ims\" | \"email\",\n  \"wfUserId\": \"string\",\n  \"emailAddr\": \"string\"  // omitted when not available\n}\n```\n\n**`TEAMOB` (team) participants**\n```\n{\n  \"isBot\": boolean\n}\n```\n\nSee `ParticipantUserMetadata` and `ParticipantTeamMetadata` for the typed shapes. Additional context-specific properties may be present; consumers should treat unknown keys as informational.",
         "anyOf": [
           {
             "$ref": "#/components/schemas/ParticipantUserMetadata"
@@ -2262,7 +2255,7 @@
           "deadlineDate": {
             "type": "string",
             "format": "date-time",
-            "description": "Absolute deadline for the stage."
+            "description": "Absolute deadline for the stage. It is an ISO 8601 date-time in UTC. Convert from your local time first. For example, 5:00 PM MST (UTC\u22127) is `00:00:00Z` the next day."
           },
           "deadlineBusinessDays": {
             "type": "number",
@@ -2270,7 +2263,7 @@
           },
           "deadlineTimeOfDay": {
             "type": "object",
-            "description": "Time-of-day paired with deadlineBusinessDays.",
+            "description": "Time-of-day paired with deadlineBusinessDays. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
             "properties": {
               "hours": {
                 "type": "number",
@@ -2481,7 +2474,7 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "Absolute deadline for the stage. `null` clears it."
+            "description": "Absolute deadline for the stage. `null` clears it. It is an ISO 8601 date-time in UTC. Convert from your local time first. For example, 5:00 PM MST (UTC\u22127) is `00:00:00Z` the next day."
           },
           "deadlineBusinessDays": {
             "type": "number",
@@ -2489,7 +2482,7 @@
           },
           "deadlineTimeOfDay": {
             "type": "object",
-            "description": "Time-of-day paired with deadlineBusinessDays.",
+            "description": "Time-of-day paired with deadlineBusinessDays. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
             "properties": {
               "hours": {
                 "type": "number",
@@ -2642,7 +2635,7 @@
           },
           "deadlineTimeOfDay": {
             "type": "object",
-            "description": "Time-of-day paired with deadlineBusinessDays.",
+            "description": "Time-of-day paired with deadlineBusinessDays. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
             "properties": {
               "hours": {
                 "type": "number",
@@ -2688,7 +2681,7 @@
           "deadlineDate": {
             "type": "string",
             "format": "date-time",
-            "description": "Absolute deadline for the stage."
+            "description": "Absolute deadline for the stage. It is an ISO 8601 date-time in UTC. Convert from your local time first. For example, 5:00 PM MST (UTC\u22127) is `00:00:00Z` the next day."
           }
         }
       },
@@ -3135,7 +3128,7 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "The deadline for the stage.",
+            "description": "The stage deadline, as an ISO 8601 date-time in UTC.",
             "example": "2025-01-16T12:00:00.000Z"
           },
           "deadlineBusinessDays": {
@@ -3147,7 +3140,7 @@
           "deadlineTimeOfDay": {
             "type": "object",
             "nullable": true,
-            "description": "The time of day the stage deadline falls on.",
+            "description": "The time of day the stage deadline falls on. The hours and minutes are in UTC.",
             "properties": {
               "hours": {
                 "type": "number",
@@ -3469,7 +3462,8 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "example": "2025-01-16T12:00:00.000Z"
+            "example": "2025-01-16T12:00:00.000Z",
+            "description": "The stage deadline, as an ISO 8601 date-time in UTC."
           },
           "deadlineBusinessDays": {
             "type": "number",
@@ -3490,7 +3484,8 @@
                 "minimum": 0,
                 "maximum": 59
               }
-            }
+            },
+            "description": "The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC."
           },
           "stageMetadata": {
             "type": "object",
