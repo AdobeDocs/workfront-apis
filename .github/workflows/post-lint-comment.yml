@@ -21,7 +21,9 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      # The Lint workflow only produces a report when src/pages changed.
       - name: Post Linter Report to PR
+        if: hashFiles('linter-report.txt') != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
