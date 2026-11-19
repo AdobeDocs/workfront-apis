@@ -975,7 +975,7 @@
       },
       "ApprovalPathCreate": {
         "type": "object",
-        "description": "One parallel path used when creating a multi-path approval.",
+        "description": "One path of an approval, used when creating the approval. Every approval has at least one path.",
         "required": [
           "stages"
         ],
@@ -983,7 +983,7 @@
           "pathId": {
             "type": "string",
             "example": "design-path",
-            "description": "Identifier for this path. Must be unique across all paths on the approval."
+            "description": "Identifier for this path. Optional: if you leave it out, the service assigns one. Must be unique across all paths on the approval."
           },
           "name": {
             "type": "string",
@@ -993,7 +993,7 @@
           "stages": {
             "type": "array",
             "minItems": 1,
-            "description": "Stage definitions for this path.",
+            "description": "The stages of this path. They must form a single sequential chain.",
             "items": {
               "$ref": "#/components/schemas/StageBody"
             }
@@ -1002,7 +1002,7 @@
       },
       "ApprovalPathUpdate": {
         "type": "object",
-        "description": "One parallel path used when replacing all stages on an existing multi-path approval.",
+        "description": "One path used when applying paths to an existing approval.",
         "required": [
           "stages"
         ],
@@ -1010,7 +1010,7 @@
           "pathId": {
             "type": "string",
             "example": "design-path",
-            "description": "Identifier for this path. Must be unique across all paths on the approval."
+            "description": "Identifier of the existing path to update. Leave it out to add a new path. Must be unique across all paths on the approval."
           },
           "name": {
             "type": "string",
@@ -1020,7 +1020,7 @@
           "stages": {
             "type": "array",
             "minItems": 1,
-            "description": "Replacement stage definitions for this path.",
+            "description": "The stages of this path. They replace the path's current stages.",
             "items": {
               "$ref": "#/components/schemas/StageBody"
             }
@@ -4398,7 +4398,7 @@
           "Approvals"
         ],
         "summary": "Create approval (deprecated)",
-        "description": "**Deprecated.** Use `POST /api/v1/approvals/{assetType}/{assetId}/stages` instead. It creates the approval and its stages in one call and is the supported path for every asset type; this operation only works for assets in external storage (ESM), does not work for other assets, and will be removed.\n\nCreates an approval with the supplied stage data. The `stages` array in the body defines the approval structure and is used as-is. `templateId` is optional metadata: the caller is expected to have fetched the template separately (`GET /api/v1/templates/{templateId}`) and copied its stages into the request body. When `templateId` is supplied, it is recorded on the new approval and the corresponding template's `usageCount` is incremented and `lastUsedOnDate` is refreshed.",
+        "description": "**Deprecated.** Use `POST /api/v1/approvals/{assetType}/{assetId}/stages` instead. It creates the approval and its stages in one call and is the supported path for every asset type; this operation only works for assets in external storage (ESM), does not work for other assets, and will be removed.\n\nCreates an approval with the supplied `paths`. The paths in the body define the approval structure and are used as-is. `templateId` is optional metadata: the caller is expected to have fetched the template separately (`GET /api/v1/templates/{templateId}`) and copied its stages into a path in the request body. When `templateId` is supplied, it is recorded on the new approval and the corresponding template's `usageCount` is incremented and `lastUsedOnDate` is refreshed.",
         "operationId": "createApproval",
         "security": [
           {
@@ -4441,18 +4441,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "stages": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Stage definitions used to build a single-path approval. The server uses this array as-is \u2014 it does not look up or expand any referenced template. To create an approval from a template, the caller must fetch the template independently (`GET /api/v1/templates/{templateId}`), copy its `stages` into this array, and optionally pass the same `templateId` to record the source on the approval and increment its usage counter. Mutually exclusive with `paths` \u2014 provide one or the other.",
-                    "items": {
-                      "$ref": "#/components/schemas/StageBody"
-                    }
-                  },
                   "paths": {
                     "type": "array",
                     "minItems": 1,
-                    "description": "Path definitions used to build a multi-path approval, each with its own `stages`. Mutually exclusive with the top-level `stages` \u2014 provide one or the other.",
+                    "description": "The approval's paths, each with its own `stages`. The server uses them as-is: it does not look up or expand any referenced template. To create an approval from a template, fetch the template (`GET /api/v1/templates/{templateId}`), copy its stages into a path here, and optionally pass the same `templateId` to record the source on the approval and increment its usage counter. At least one path is required.",
                     "items": {
                       "$ref": "#/components/schemas/ApprovalPathCreate"
                     }
@@ -4462,17 +4454,8 @@
                     "description": "ID of the template used to create this approval, if any. Recorded on the approval for traceability and used to increment the template's `usageCount` and refresh `lastUsedOnDate`. The server does **not** load stages from the template \u2014 the caller must fetch the template via `GET /api/v1/templates/{templateId}` and copy its stages into the `stages` array."
                   }
                 },
-                "anyOf": [
-                  {
-                    "required": [
-                      "stages"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "paths"
-                    ]
-                  }
+                "required": [
+                  "paths"
                 ]
               }
             }
@@ -4668,8 +4651,8 @@
         "tags": [
           "Stages"
         ],
-        "summary": "Create or add stages (auto-creates approval)",
-        "description": "Creates the approval for the asset from the given stages (or `paths`), and returns it with `201`. If the asset already has an approval, the stages you send are merged into it and the response is still `201`: a stage whose `stageId` matches an existing stage updates it, any other stage is added, and stages you leave out are kept. A stage without a `stageId` gets a new one every time, so sending the same request twice adds the stages twice. Give every stage a `stageId` so that a retry is safe. When parallel approval paths are enabled, paths that you leave out of `paths` are removed.\n\nThis is the way to create an approval, including its first stages, in one call.\n\nThe stages must form a single sequential chain:\n\n- Exactly one stage has no `parentIds` (the first stage), and each stage has at most one parent and at most one child.\n- An `onCreate` trigger is allowed only on the first stage, and an `onStagesComplete` trigger only on later stages.\n- A trigger can only refer to stages in the same request, and never to its own stage.\n- Every participant must be an active user. Deactivated users return `400`.\n- On assets in external storage (ESM), a team cannot be added directly (`400 TEAM_NOT_ALLOWED_ON_ESM`), and `participantType` is required on every participant.\n\n`paths` is honored only for tenants that have parallel approval paths enabled; otherwise send `stages`. Violations of the rules above return `400` with a message for each problem.",
+        "summary": "Create approval with paths",
+        "description": "Creates the approval for the asset from the given `paths`, and returns it with `201`. Every approval has at least one path, and each path has its own `stages`. This is the way to create an approval and its first stages in one call.\n\nIf the asset already has an approval, the paths you send are applied to it, and the response is still `201`:\n\n- A path whose `pathId` matches an existing path replaces that path's stages with the stages you send. A stage whose `stageId` matches an existing stage keeps its decisions and its lock state, and a stage you leave out of the path is removed.\n- A path without a `pathId` is added as a new path. Sending the same request twice adds the path twice, so send the `pathId` once the path exists.\n- An existing path you leave out of `paths` is removed.\n- A `pathId` that does not belong to the approval returns `404`. The same `pathId` twice in one request, or the same `stageId` in two paths, returns `400`.\n\nThe stages of each path must form a single sequential chain:\n\n- Exactly one stage has no `parentIds` (the first stage of the path), and each stage has at most one parent and at most one child.\n- `parentIds` can only name stages in the same path.\n- An `onCreate` trigger is allowed only on the first stage, and an `onStagesComplete` trigger only on later stages.\n- A trigger can only refer to stages in its own path, and never to its own stage.\n- Every participant must be an active user. Deactivated users return `400`.\n- On assets in external storage (ESM), a team cannot be added directly (`400 TEAM_NOT_ALLOWED_ON_ESM`), and `participantType` is required on every participant.\n\nViolations of the rules above return `400` with a message for each problem.",
         "operationId": "postStages",
         "security": [
           {
@@ -4712,28 +4695,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "stages": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Stage definitions used to build a single-path approval. Mutually exclusive with `paths` — provide one or the other.",
-                    "items": {
-                      "allOf": [
-                        {
-                          "$ref": "#/components/schemas/StageBody"
-                        },
-                        {
-                          "type": "object",
-                          "required": [
-                            "participants"
-                          ]
-                        }
-                      ]
-                    }
-                  },
                   "paths": {
                     "type": "array",
                     "minItems": 1,
-                    "description": "Path definitions used to build a multi-path approval, each with its own `stages`. Mutually exclusive with the top-level `stages` — provide one or the other.",
+                    "description": "The approval's paths, each with its own `stages`. At least one path is required.",
                     "items": {
                       "$ref": "#/components/schemas/ApprovalPathCreate"
                     }
@@ -4743,17 +4708,8 @@
                     "description": "ID of the template used to create this approval, if any."
                   }
                 },
-                "anyOf": [
-                  {
-                    "required": [
-                      "stages"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "paths"
-                    ]
-                  }
+                "required": [
+                  "paths"
                 ]
               }
             }
@@ -4787,8 +4743,8 @@
         "tags": [
           "Stages"
         ],
-        "summary": "Add or update stages",
-        "description": "Merges the given stages into an existing approval: a stage whose `stageId` matches an existing stage updates it, any other stage is added, and stages you leave out are kept. A stage without a `stageId` gets a new one every time, so give every stage a `stageId` to make a retry safe. When parallel approval paths are enabled, paths that you leave out of `paths` are removed. The asset must be in an editable state.\n\nThe response is the approval as stored. Unlike `GET`, it does not include `userInfo`, `isApprovalActive`, `frameSyncStatus` or the enriched participant details; call `GET` if you need them. On assets in external storage (ESM), teams are rejected; see *Teams on external-storage (ESM) assets*.",
+        "summary": "Update approval paths",
+        "description": "Applies the given `paths` to the existing approval. A path whose `pathId` matches an existing path replaces that path's stages with the stages you send: a stage whose `stageId` matches an existing stage keeps its decisions and its lock state, and a stage you leave out is removed. A path without a `pathId` is added as a new path, and an existing path you leave out of `paths` is removed. A `pathId` that does not belong to the approval returns `404`. The chain, trigger and participant rules are the same as for `POST \u2026/stages`. Returns `404` if the asset has no approval. The asset must be in an editable state.\n\nThe response is the approval as stored. Unlike `GET`, it does not include `userInfo`, `isApprovalActive`, `frameSyncStatus` or the enriched participant details; call `GET` if you need them. On assets in external storage (ESM), teams are rejected; see *Teams on external-storage (ESM) assets*.",
         "operationId": "putStages",
         "security": [
           {
@@ -4831,33 +4787,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "stages": {
-                    "type": "array",
-                    "description": "Replacement stage definitions for a single-path approval. Mutually exclusive with `paths` — provide one or the other.",
-                    "items": {
-                      "$ref": "#/components/schemas/StageBody"
-                    }
-                  },
                   "paths": {
                     "type": "array",
                     "minItems": 1,
-                    "description": "Replacement path definitions for a multi-path approval, each with its own `stages`. Mutually exclusive with the top-level `stages` — provide one or the other.",
+                    "description": "The approval's paths, each with its own `stages`. At least one path is required.",
                     "items": {
                       "$ref": "#/components/schemas/ApprovalPathUpdate"
                     }
                   }
                 },
-                "anyOf": [
-                  {
-                    "required": [
-                      "stages"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "paths"
-                    ]
-                  }
+                "required": [
+                  "paths"
                 ]
               }
             }
