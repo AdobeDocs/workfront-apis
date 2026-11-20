@@ -3,7 +3,7 @@
   "info": {
     "title": "Unified Approvals API",
     "version": "1.0",
-    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search across every approval the requesting user can see, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThe connector supports one authentication method:\n\n| Method | Header/Cookie | Use case |\n|--------|--------------|----------|\n| **Bearer** | `Authorization: Bearer <token>` | IMS Bearer token from Adobe IO / Developer Console |\n\nAll endpoints accept Bearer token auth.\n\n> **Note on auth error codes:** The AIO gateway performs credential pre-flight before routing to the service.\n> \n> | Condition | HTTP status | `error_code` |\n> |-----------|-------------|---------------|\n> | `Authorization` header absent | 403 | `403010` \u2014 \"Oauth token is missing.\" |\n> | `x-api-key` header absent (valid Bearer present) | 403 | `403000` \u2014 \"Api Key is missing.\" |\n> | Token present but invalid or expired | 401 | `401013` |\n> \n> The first two cases are caught by the gateway and never reach the service. The 401 case is handled by the service itself.\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals/`\n\n## Endpoint Groups\n\n| Tag | Base path | Auth |\n|-----|-----------|------|\n| Approvals | `/api/v1/approvals` | Complex |\n| Grouped Approvals | `/api/v1/grouped-approvals` | Complex |\n| Templates | `/api/v1/templates` | Complex |\n| Bots | `/api/v1/bots` | Complex |\n| Bot Reviews | `/api/v1/bot-reviews` | Complex |\n",
+    "description": "The Unified Approvals Connector is the HTTP API for managing approvals on Workfront document versions. Use it to create approvals, build multi-stage workflows with conditional stage triggers, add and remind participants, record decisions, manage reusable approval templates, search the approvals in your customer, and retrieve AI brand-review results captured by bot reviewers on a stage.\n\n## Authentication\n\nThis API is for Adobe IMS **technical accounts** (OAuth Server-to-Server credentials from the Adobe Developer Console). Send the technical account's access token as a Bearer token:\n\n| Header | Value |\n|--------|-------|\n| `Authorization` | `Bearer <access token>` |\n| `x-api-key` | The `client_id` of the technical account |\n| `x-gw-subdomain` | Required. Your Workfront customer subdomain, for example `mycompany`. The Adobe I/O gateway uses it to route the request to your Workfront environment |\n| `wf-userid` | Optional. The Workfront user the request acts as. Omit it to act as the technical account's own Workfront user |\n| `wf-customerid` | Optional. Your Workfront customer ID. Omit it and the service finds it from `x-gw-subdomain` |\n| `wf-lane` | Optional when the gateway knows your lane. The Workfront deployment lane, for example `prod` |\n\n`wf-userid` and `wf-customerid` must belong to the same IMS org as the technical account. A request that names a user or customer in another org is rejected.\n\nWhen you send `wf-userid`, the service acts as that user and passes the technical account on as the real caller, for example as `realCreator` on a created grouped approval.\n\nOnly the endpoints documented here are available to technical accounts. A request to any other path is rejected with `401`. A token that does not belong to a technical account, for example a user's token, is also rejected with `401`.\n\n> **Authentication errors**\n>\n> | Condition | HTTP status | Body |\n> |-----------|-------------|------|\n> | `x-api-key` header absent | 403 | `{\"error_code\": \"403000\", \"message\": \"Api Key is required\"}`, returned by the Adobe I/O gateway |\n> | `Authorization` header absent | 4xx | Returned by the Adobe I/O gateway |\n> | Token invalid or expired | 401 | `{\"error_code\": \"401013\", \"message\": \"Oauth token is not valid\"}`, returned by the Adobe I/O gateway |\n> | Token is valid but not a technical account's, or the endpoint is not available to technical accounts | 401 | `{\"message\": \"Unauthorized\", \"statusCode\": 401}` |\n> | `wf-userid` does not match a Workfront user | 401 | `{\"message\": \"Unauthorized\", \"statusCode\": 401}` |\n> | `wf-userid` or `wf-customerid` belongs to another IMS org than the technical account | 403 | `message` names the header |\n> | `x-gw-subdomain` is missing or is not a valid subdomain | 400 | `message` names the header |\n> | `wf-lane` is missing and the gateway does not know the lane | 400 | `message` names the header |\n> | No Workfront customer matches the technical account and `x-gw-subdomain` | 400 | `message` says to send `wf-customerid` |\n> | `wf-userid` is omitted and no Workfront user is mapped to the technical account | 400 | `message` says to send `wf-userid` |\n> | The service could not look up the customer, so it cannot confirm it | 503 | Retry shortly |\n>\n> The gateway checks the API key and token before the request reaches the service. The service itself returns the `401`, `403`, `400` and `503` responses above and does not add an `error_code`.\n\n## Teams on external-storage (ESM) assets\n\nAssets in external storage (ESM) only understand individual users, so a team (`TEAMOB`) cannot be added to their approvals. The API does not expand a team for you: expand it into its members and send them as individual `USER` participants.\n\nWhen you create or replace stages, update a stage with `participants`, add participants, create a grouped approval, or send the full-state `PATCH` of a grouped approval, a participant on an ESM asset can return `400` with one of these `code` values:\n\n- `TEAM_NOT_ALLOWED_ON_ESM` \u2014 a participant has `participantType` `TEAMOB`. On the grouped endpoints the field is `type`.\n- `PARTICIPANT_TYPE_REQUIRED` \u2014 a participant's `participantType` (`type` on grouped endpoints) is missing or is not `USER` or `TEAMOB`. Always send the type explicitly, because a missing type is otherwise read as `USER`, which would let a team through unnoticed. `POST \u2026/stages` and `POST /grouped-approvals` already reject a value that is not `USER` or `TEAMOB` as an ordinary `400` without this `code`, and `POST \u2026/stages` does the same for a missing `participantType`.\n\nAssets that are not in external storage are unaffected, and teams stay valid on them.\n\n## Errors\n\nEvery error response from the service has `message` and `statusCode`. Errors returned by the Adobe I/O gateway, before the request reaches the service, have `error_code` and `message` instead. Errors that come from a business rule also carry a stable `code` in `response.code`; branch on that rather than on `message`. A `503` may include a `Retry-After` header, given in seconds or as an HTTP date. If it is absent, wait and retry with backoff. `POST /api/v1/templates` is not idempotent, so if a create times out, list the templates before you retry it.\n\nA `409` without a `code` is not always permanent. Creating an approval for an asset at the same moment as another request can return a plain `409`; read the approval with `GET` and retry once.\n\nCommon `code` values:\n\n| `code` | Status | Meaning | Retry? |\n|--------|--------|---------|--------|\n| `APPROVAL_OWNED_BY_GROUP` | 409 | The approval belongs to a grouped approval, so its stages and participants cannot be edited directly. `response.details.groupedApprovalGuid` names the group. | No. Change it with `PATCH /api/v1/grouped-approvals/{groupGuid}`. |\n| `GROUP_WITHDRAWN` | 409 | A write to a withdrawn grouped approval. | No. |\n| `GROUP_HAS_DECIDED_STAGE` | 409 | Adding assets while a stage of the grouped approval is decided. | No. |\n| `GROUP_WOULD_BE_EMPTY` | 409 | Removing the last asset of a grouped approval. | No. Delete the grouped approval instead. |\n| `STAGE_ID_CONFLICT`, `DUPLICATE_PATH_IN_GROUP` | 409 on the full-state `PATCH`; for `STAGE_ID_CONFLICT` on `PATCH \u2026/stages`, an entry in `errors` inside a `200` | A new stage or path reuses an existing `stageId` or `pathId`. | No. Use a new ID. If a retried add reports it, the first add may already have applied, so read the group with `GET`. |\n| `ASSET_ALREADY_HAS_APPROVAL` | 409 | An asset in a new grouped approval already has an approval of its own. `response.assetGuid` names it. | No. |\n| `ASSET_IN_ANOTHER_GROUP` | 409 | An asset already belongs to another grouped approval. | No. Remove it from that group first. |\n| `STAGE_NOT_EDITABLE` | 409 | The stage is locked. | No, not until it is unlocked. |\n| `FRAME_ASSET_NOT_READY` | 409 | An asset in external storage has not finished syncing. `response.assetIds` lists the assets. | Yes, once the assets are ready. |\n| `GROUP_ASSET_CAP_EXCEEDED` | 400 | The grouped approval would hold more than 25 assets. | No. |\n| `GROUP_ASSET_STAGE_CAP_EXCEEDED` | 400 | Assets times stages across all paths would exceed 100. | No. |\n| `GROUPED_APPROVALS_DISABLED` | 403 | Grouped approvals are not enabled for the customer. | No. |\n| `FRAME_UNAVAILABLE` | 503 | Frame could not be reached. | Yes, after any `Retry-After`. |\n\n## Asset Types\n\nEndpoints currently only support `DOCV` (Workfront document version) as the `assetType` path parameter.\n\n\n## Base URL\n\n`https://workfront.adobe.io/workfront-approvals`\n\n## Endpoint Groups\n\n| Tag | Base path |\n|-----|-----------|\n| Approvals | `/api/v1/approvals` |\n| Grouped Approvals | `/api/v1/grouped-approvals` |\n| Templates | `/api/v1/templates` |\n| Bots | `/api/v1/bots` |\n| Bot Reviews | `/api/v1/bot-reviews` |\n| Search | `/api/v1/search` |\n\nAll endpoints use the authentication described above.\n",
     "contact": {
       "name": "",
       "email": "",
@@ -12,7 +12,7 @@
   },
   "servers": [
     {
-      "url": "https://workfront.adobe.io/workfront-approvals/",
+      "url": "https://workfront.adobe.io/workfront-approvals",
       "description": "Production"
     }
   ],
@@ -48,6 +48,10 @@
     {
       "name": "Bot Reviews",
       "description": "AI brand review results from the Bot Registry"
+    },
+    {
+      "name": "Search",
+      "description": "Search approvals by project, folder, asset, status, participant and more."
     }
   ],
   "components": {
@@ -56,7 +60,7 @@
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT",
-        "description": "IMS Bearer token from Adobe IO / Developer Console."
+        "description": "Access token of an Adobe IMS technical account (OAuth Server-to-Server), from the Adobe Developer Console. Tokens for other kinds of accounts are rejected with `401`."
       }
     },
     "parameters": {
@@ -124,23 +128,13 @@
           "type": "string"
         }
       },
-      "ImsOrgId": {
-        "name": "imsOrgId",
-        "in": "path",
-        "required": true,
-        "description": "IMS Organization ID",
-        "schema": {
-          "type": "string"
-        }
-      },
       "XRequestId": {
         "name": "x-request-id",
         "in": "header",
         "required": false,
-        "description": "Unique identifier for request tracing. Auto-generated if not provided.",
+        "description": "Unique identifier for request tracing. Auto-generated if not provided. Any string is accepted; it is returned in the `x-request-id` response header.",
         "schema": {
-          "type": "string",
-          "format": "uuid"
+          "type": "string"
         }
       },
       "XCorrelationId": {
@@ -168,41 +162,35 @@
         "schema": {
           "type": "string"
         },
-        "description": "Workfront customer subdomain (e.g. `mycompany`). Must match the subdomain of the Workfront instance being accessed. Passing an incorrect or unrecognized subdomain will result in a `502 Bad Gateway` response from the AIO gateway."
+        "description": "Workfront customer subdomain (e.g. `mycompany`). Required. The Adobe I/O gateway uses it to route your request to your Workfront environment, so it must match the subdomain of the Workfront instance being accessed. Passing an incorrect or unrecognized subdomain will result in a `502 Bad Gateway` response from the AIO gateway."
       },
       "WfCustomerId": {
         "name": "wf-customerid",
         "in": "header",
-        "required": true,
+        "required": false,
         "schema": {
           "type": "string"
         },
-        "description": "Workfront customer ID."
+        "description": "Your Workfront customer ID. Optional: if you leave it out, the service finds the customer in your technical account's IMS org from `x-gw-subdomain`. If you send it, it must belong to that IMS org."
       },
       "WfUserId": {
         "name": "wf-userid",
         "in": "header",
-        "required": true,
+        "required": false,
         "schema": {
           "type": "string"
         },
-        "description": "Workfront user ID of the acting user."
+        "description": "The Workfront user the request acts as. Optional: if you leave it out, the request acts as the technical account's own Workfront user. If you send it, the user must belong to your technical account's IMS org."
       },
       "WfLane": {
         "name": "wf-lane",
         "in": "header",
-        "required": true,
+        "required": false,
         "schema": {
           "type": "string",
-          "enum": [
-            "prod",
-            "preview",
-            "hub",
-            "staging",
-            "devtest"
-          ]
+          "example": "prod"
         },
-        "description": "Workfront deployment lane."
+        "description": "The Workfront deployment lane your customer is on, for example `prod`. Optional when the gateway already knows the lane; that lane is used and this value is ignored."
       },
       "GroupGuid": {
         "name": "groupGuid",
@@ -315,21 +303,21 @@
             "items": {
               "$ref": "#/components/schemas/ApprovalStage"
             },
-            "description": "Ordered list of stages on this approval."
+            "description": "Ordered list of stages on this approval. Present when the approval has one path. When it has several paths, the stages are in `paths[].stages`."
           },
           "structure": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovalStructure"
             },
-            "description": "Stage dependency graph. Each entry maps a `stageId` to its `parentIds`, defining the order in which stages activate."
+            "description": "Stage dependency graph. Each entry maps a `stageId` to its `parentIds`, defining the order in which stages activate. Present when the approval has one path. When it has several paths, see `paths[].structure`."
           },
           "paths": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovalPath"
             },
-            "description": "Parallel approval paths on this approval. Each path has its own `stages` and `structure`, allowing independent stage sequences to run side by side. Empty for single-path approvals."
+            "description": "The approval's paths. Every approval has at least one. Each path has its own `stages` and `structure`, so independent stage sequences can run side by side."
           },
           "userInfo": {
             "type": "object",
@@ -379,6 +367,48 @@
               "currentUserMadeDecision": {
                 "type": "boolean",
                 "nullable": true
+              },
+              "isDelegatedAction": {
+                "type": "boolean",
+                "nullable": true,
+                "description": "`true` if the requesting user can act on this approval as a delegate of another participant."
+              },
+              "delegatedFromParticipantId": {
+                "type": "string",
+                "nullable": true,
+                "description": "The participant the requesting user is acting for, when `isDelegatedAction` is `true`."
+              },
+              "delegatedFromName": {
+                "type": "string",
+                "nullable": true,
+                "description": "Display name of the participant the requesting user is acting for."
+              }
+            }
+          },
+          "groupedApprovalGuid": {
+            "type": "string",
+            "nullable": true,
+            "description": "GUID of the grouped approval this approval belongs to, or `null` if it is not part of one."
+          },
+          "imsOrgId": {
+            "type": "string",
+            "description": "IMS organization ID of the customer."
+          },
+          "config": {
+            "type": "object",
+            "description": "Approval-level settings. Present only for customers that have the approved-with-changes settings enabled.",
+            "properties": {
+              "allowedApproverDecisions": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "approved",
+                    "approved with changes",
+                    "needs work"
+                  ]
+                },
+                "description": "The decisions approvers may choose on this approval."
               }
             }
           }
@@ -435,7 +465,10 @@
             },
             "currentUserMadeDecision": false
           }
-        }
+        },
+        "required": [
+          "approvalGuid"
+        ]
       },
       "ApprovalStage": {
         "type": "object",
@@ -448,7 +481,7 @@
           "pathId": {
             "type": "string",
             "example": "design-path",
-            "description": "ID of the path this stage belongs to, when the stage is part of a multi-path approval."
+            "description": "ID of the path this stage belongs to."
           },
           "name": {
             "type": "string"
@@ -469,23 +502,17 @@
           "deadlineDate": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "The stage deadline, as an ISO 8601 date-time in UTC."
           },
           "deadlineBusinessDays": {
             "type": "number",
             "nullable": true
           },
-          "deadlineTime": {
-            "type": "string",
-            "nullable": true,
-            "example": "17:00",
-            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
-            "description": "Deadline time of day in 24-hour `HH:MM` format (e.g. `\"17:00\"`)."
-          },
           "deadlineTimeOfDay": {
             "type": "object",
             "nullable": true,
-            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM UTC. The hours and minutes are in UTC.",
             "properties": {
               "hours": {
                 "type": "number",
@@ -788,7 +815,7 @@
       },
       "ApprovalPath": {
         "type": "object",
-        "description": "One parallel path on an approval that has multiple independent stage sequences. Each path carries its own `stages` and `structure`, scoped the same way as the top-level fields of the same name on `Approval`.",
+        "description": "One path of an approval. Each path carries its own `stages` and `structure`, scoped the same way as the top-level fields of the same name on `Approval`.",
         "properties": {
           "pathId": {
             "type": "string",
@@ -831,10 +858,7 @@
       },
       "StageBody": {
         "type": "object",
-        "required": [
-          "participants"
-        ],
-        "description": "Stage definition used when creating or updating an approval",
+        "description": "A stage definition. `participants` is required when creating stages with `POST \u2026/stages`; on `PATCH \u2026/stages/{stageId}` send only the fields you want to change.",
         "properties": {
           "stageId": {
             "type": "string",
@@ -846,18 +870,35 @@
           "deadlineDate": {
             "type": "string",
             "format": "date-time",
-            "nullable": true
+            "nullable": true,
+            "description": "The stage deadline. It is an ISO 8601 date-time in UTC. Convert from your local time first. For example, 5:00 PM MST (UTC\u22127) is `00:00:00Z` the next day."
           },
           "deadlineBusinessDays": {
             "type": "number",
             "nullable": true
           },
-          "deadlineTime": {
-            "type": "string",
+          "deadlineTimeOfDay": {
+            "type": "object",
             "nullable": true,
-            "example": "17:00",
-            "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
-            "description": "Deadline time of day in 24-hour `HH:MM` format (e.g. `\"17:00\"`)."
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM UTC. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
+            "properties": {
+              "hours": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23,
+                "description": "Hour of the day (0\u201323)."
+              },
+              "minutes": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59,
+                "description": "Minute of the hour (0\u201359)."
+              }
+            },
+            "example": {
+              "hours": 17,
+              "minutes": 0
+            }
           },
           "stageMetadata": {
             "type": "object",
@@ -924,13 +965,13 @@
           "pathId": {
             "type": "string",
             "example": "design-path",
-            "description": "ID of the path this stage belongs to, when the stage is part of a multi-path approval."
+            "description": "ID of the path this stage belongs to."
           }
         }
       },
       "ApprovalPathCreate": {
         "type": "object",
-        "description": "One parallel path used when creating a multi-path approval.",
+        "description": "One path of an approval, used when creating the approval. Every approval has at least one path.",
         "required": [
           "stages"
         ],
@@ -938,7 +979,7 @@
           "pathId": {
             "type": "string",
             "example": "design-path",
-            "description": "Identifier for this path. Must be unique across all paths on the approval."
+            "description": "Identifier for this path. Optional: if you leave it out, the service assigns one. Must be unique across all paths on the approval."
           },
           "name": {
             "type": "string",
@@ -948,7 +989,7 @@
           "stages": {
             "type": "array",
             "minItems": 1,
-            "description": "Stage definitions for this path.",
+            "description": "The stages of this path. They must form a single sequential chain.",
             "items": {
               "$ref": "#/components/schemas/StageBody"
             }
@@ -957,7 +998,7 @@
       },
       "ApprovalPathUpdate": {
         "type": "object",
-        "description": "One parallel path used when replacing all stages on an existing multi-path approval.",
+        "description": "One path used when applying paths to an existing approval.",
         "required": [
           "stages"
         ],
@@ -965,7 +1006,7 @@
           "pathId": {
             "type": "string",
             "example": "design-path",
-            "description": "Identifier for this path. Must be unique across all paths on the approval."
+            "description": "Identifier of the existing path to update. Leave it out to add a new path. Must be unique across all paths on the approval."
           },
           "name": {
             "type": "string",
@@ -975,7 +1016,7 @@
           "stages": {
             "type": "array",
             "minItems": 1,
-            "description": "Replacement stage definitions for this path.",
+            "description": "The stages of this path. They replace the path's current stages.",
             "items": {
               "$ref": "#/components/schemas/StageBody"
             }
@@ -984,6 +1025,9 @@
       },
       "ParticipantBody": {
         "type": "object",
+        "required": [
+          "participantId"
+        ],
         "description": "Participant definition used in request bodies",
         "properties": {
           "stageId": {
@@ -992,7 +1036,8 @@
             "description": "ID of an existing stage on the approval to attach this participant to (e.g. `design-review`)."
           },
           "participantId": {
-            "type": "string"
+            "type": "string",
+            "description": "ID of the user or team to add. Required for every participant."
           },
           "participantType": {
             "type": "string",
@@ -1008,9 +1053,6 @@
               "reviewer"
             ],
             "description": "Role this participant plays on the stage.\n\n- `approver` \u2014 Has a binding vote; their decision directly affects stage and approval status.\n- `reviewer` \u2014 Non-binding; can mark reviewed but does not block approval progression.\n\nThe role, combined with the participant's current decision, also drives the `userInfo.action` value on every approval response \u2014 see [`Approval.userInfo.action`](#section/Schemas/Approval) for the role/decision \u2192 action mapping."
-          },
-          "participantMetadata": {
-            "$ref": "#/components/schemas/ParticipantMetadata"
           }
         }
       },
@@ -1071,21 +1113,22 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TemplateStage"
-            }
+            },
+            "description": "Ordered list of stages on this template. Present when the template has one path. When it has several paths, the stages are in `paths[].stages`."
           },
           "structure": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovalStructure"
             },
-            "description": "Workflow structure defining stage ordering and trigger dependencies."
+            "description": "Workflow structure defining stage ordering and trigger dependencies. Present when the template has one path. When it has several paths, see `paths[].structure`."
           },
           "paths": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TemplatePath"
             },
-            "description": "Parallel paths on this template. Each path has its own `stages` and `structure`, allowing independent stage sequences to run side by side. Empty for single-path templates."
+            "description": "The template's paths. Every template has at least one. Each path has its own `stages` and `structure`, so independent stage sequences can run side by side."
           },
           "sharedWith": {
             "type": "array",
@@ -1117,6 +1160,17 @@
             "type": "integer",
             "deprecated": true,
             "description": "**Deprecated.** Use `timeframeEstimate` instead. Previously used to store the expected duration of the approval in days."
+          },
+          "sharedWithEveryone": {
+            "type": "boolean",
+            "description": "`true` if the template is shared with everyone in the customer."
+          },
+          "sharedWithCompanies": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "IDs of the companies the template is shared with. Present only for customers that have company sharing enabled."
           }
         },
         "example": {
@@ -1215,7 +1269,7 @@
           "deadlineTimeOfDay": {
             "type": "object",
             "nullable": true,
-            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM UTC. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
             "properties": {
               "hours": {
                 "type": "number",
@@ -1239,7 +1293,7 @@
       },
       "TemplatePath": {
         "type": "object",
-        "description": "One parallel path on a template that has multiple independent stage sequences. Each path carries its own `stages` and `structure`, scoped the same way as the top-level fields of the same name on `Template`.",
+        "description": "One path of a template. Each path carries its own `stages` and `structure`, scoped the same way as the top-level fields of the same name on `Template`.",
         "properties": {
           "pathId": {
             "type": "string",
@@ -1318,13 +1372,6 @@
           "linkTo": {
             "type": "string",
             "nullable": true
-          },
-          "teamMembers": {
-            "type": "array",
-            "description": "Members of the team. Populated only when `participantType` is `TEAMOB`.",
-            "items": {
-              "$ref": "#/components/schemas/TeamMember"
-            }
           }
         }
       },
@@ -1333,7 +1380,7 @@
         "description": "Request body for creating or updating a template.",
         "required": [
           "name",
-          "stages"
+          "paths"
         ],
         "properties": {
           "name": {
@@ -1349,38 +1396,38 @@
           },
           "companyId": {
             "type": "string",
-            "nullable": true
-          },
-          "stages": {
-            "type": "array",
-            "minItems": 1,
-            "description": "Stages that make up the template, in graph form.",
-            "items": {
-              "$ref": "#/components/schemas/TemplateStageBody"
-            }
+            "nullable": true,
+            "description": "ID of the company this template belongs to, used by the `filterByMyCompany` query parameter. Send `null` to clear it."
           },
           "paths": {
             "type": "array",
-            "description": "Parallel paths that make up the template, each with its own stages in graph form. Omit for single-path templates.",
+            "description": "The paths that make up the template, each with its own stages in graph form. At least one path is required. A path with a `pathId` updates that path in place, and a path without one is added as a new path.",
             "items": {
               "$ref": "#/components/schemas/TemplatePathBody"
-            }
+            },
+            "minItems": 1
           },
           "sharedWith": {
             "type": "array",
-            "description": "Optional list of users the template is shared with.",
+            "description": "Who the template is shared with. Anyone it is shared with can see it, edit it, and change who it is shared with; only the owner counts as its owner. Each item has exactly one of `userId`, `tenantId` or `companyId`. The creator always has access and is ignored if listed.\n\n- `{ \"userId\": \"...\" }` shares with one user.\n- `{ \"tenantId\": \"...\" }` shares with everyone in the customer. `tenantId` must be your own customer ID. When present, `userId` and `companyId` items add nothing and are not stored.\n- `{ \"companyId\": \"...\" }` shares with a company. Only honored for customers that have company sharing enabled; otherwise the item is ignored.\n\nOn create, omitting `sharedWith` leaves the template private. On `PUT` and `PATCH`, omitting it leaves sharing unchanged and sending `[]` removes all sharing.",
             "items": {
               "type": "object",
               "properties": {
                 "userId": {
                   "type": "string"
                 },
+                "tenantId": {
+                  "type": "string"
+                },
+                "companyId": {
+                  "type": "string"
+                },
                 "accessLevel": {
                   "type": "string",
                   "enum": [
-                    "EDIT_ACCESS",
                     "VIEW_ACCESS"
-                  ]
+                  ],
+                  "description": "Optional. Send `VIEW_ACCESS` or leave it out; `EDIT_ACCESS` returns `400`. It does not limit what the recipient can do: anyone the template is shared with can edit it."
                 }
               }
             }
@@ -1388,67 +1435,71 @@
         },
         "example": {
           "name": "Test Template",
-          "stages": [
+          "paths": [
             {
-              "stageId": "stage-1",
-              "name": "Stage 1",
-              "parentIds": [],
-              "triggers": [
+              "name": "Review path",
+              "stages": [
                 {
-                  "type": "activation",
-                  "when": "onCreate"
-                }
-              ],
-              "deadlineBusinessDays": 3,
-              "deadlineTimeOfDay": {
-                "hours": 17,
-                "minutes": 0
-              },
-              "participants": [
+                  "stageId": "stage-1",
+                  "name": "Stage 1",
+                  "parentIds": [],
+                  "triggers": [
+                    {
+                      "type": "activation",
+                      "when": "onCreate"
+                    }
+                  ],
+                  "deadlineBusinessDays": 3,
+                  "deadlineTimeOfDay": {
+                    "hours": 17,
+                    "minutes": 0
+                  },
+                  "participants": [
+                    {
+                      "participantId": "user-123",
+                      "participantType": "USER",
+                      "participantRole": "approver",
+                      "participantMetadata": {}
+                    }
+                  ]
+                },
                 {
-                  "participantId": "user-123",
-                  "participantType": "USER",
-                  "participantRole": "approver",
-                  "participantMetadata": {}
-                }
-              ]
-            },
-            {
-              "stageId": "stage-2",
-              "name": "Stage 2",
-              "parentIds": [
-                "stage-1"
-              ],
-              "triggers": [
-                {
-                  "type": "activation",
-                  "when": "onStagesComplete",
-                  "parameters": {
-                    "stages": [
-                      "stage-1"
-                    ],
-                    "allowedDecisions": [
-                      "approved"
-                    ]
-                  }
-                }
-              ],
-              "deadlineBusinessDays": 2,
-              "deadlineTimeOfDay": {
-                "hours": 12,
-                "minutes": 30
-              },
-              "participants": [
-                {
-                  "participantId": "user-456",
-                  "participantType": "USER",
-                  "participantRole": "reviewer",
-                  "participantMetadata": {}
+                  "stageId": "stage-2",
+                  "name": "Stage 2",
+                  "parentIds": [
+                    "stage-1"
+                  ],
+                  "triggers": [
+                    {
+                      "type": "activation",
+                      "when": "onStagesComplete",
+                      "parameters": {
+                        "stages": [
+                          "stage-1"
+                        ],
+                        "allowedDecisions": [
+                          "approved"
+                        ]
+                      }
+                    }
+                  ],
+                  "deadlineBusinessDays": 2,
+                  "deadlineTimeOfDay": {
+                    "hours": 12,
+                    "minutes": 30
+                  },
+                  "participants": [
+                    {
+                      "participantId": "user-456",
+                      "participantType": "USER",
+                      "participantRole": "reviewer",
+                      "participantMetadata": {}
+                    }
+                  ]
                 }
               ]
             }
-          ],
-          "paths": []
+          ]
         }
       },
       "TemplateStageBody": {
@@ -1488,7 +1539,7 @@
           "deadlineTimeOfDay": {
             "type": "object",
             "nullable": true,
-            "description": "Time-of-day component of the stage deadline. An object with two numeric properties — `hours` (0–23) and `minutes` (0–59) — that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM.",
+            "description": "Time-of-day component of the stage deadline. An object with two numeric properties \u2014 `hours` (0\u201323) and `minutes` (0\u201359) \u2014 that, paired with the date derived from `deadlineBusinessDays`, pins the deadline to a specific moment. Set to `null` when no time-of-day is configured.\n\nExample: `{ \"hours\": 17, \"minutes\": 0 }` for 5:00 PM UTC. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
             "properties": {
               "hours": {
                 "type": "number",
@@ -1547,16 +1598,15 @@
       },
       "TemplatePathBody": {
         "type": "object",
-        "description": "One parallel path in graph form, used when creating or updating a multi-path template.",
+        "description": "One path of a template, in graph form. Every template has at least one path.",
         "required": [
-          "pathId",
           "stages"
         ],
         "properties": {
           "pathId": {
             "type": "string",
             "example": "design-path",
-            "description": "Identifier for this path. Must be unique across all paths on the template."
+            "description": "Identifier of an existing path to update in place. Leave it out to add a new path. Must be unique across all paths on the template."
           },
           "name": {
             "type": "string",
@@ -1582,18 +1632,16 @@
           "message": {
             "type": "string"
           },
-          "errors": {
-            "type": "array",
-            "description": "Validation error details (present on 400 FST_ERR_VALIDATION errors)",
-            "items": {
-              "type": "object"
-            }
-          },
           "response": {
             "type": "object",
-            "description": "Upstream service error response, if applicable"
+            "description": "The upstream or business error body. Business errors include `code`, and some add fields next to it, for example `assetIds` on `FRAME_ASSET_NOT_READY` and `details.groupedApprovalGuid` on `APPROVAL_OWNED_BY_GROUP`."
+          },
+          "source": {
+            "type": "string",
+            "description": "Which upstream produced the error (for example `workfront` or `aas`). Only present on operations that call more than one upstream, where the HTTP status alone cannot tell you which one failed."
           }
-        }
+        },
+        "description": "Error body. `message` is human readable and may change; do not match on it. Business errors carry a stable `code` inside `response` (for example `GROUPED_APPROVALS_DISABLED`, `FRAME_ASSET_NOT_READY`, `STAGE_ID_CONFLICT`, `GROUP_ASSET_STAGE_CAP_EXCEEDED`); branch on `response.code`."
       },
       "GuidelineCheckResult": {
         "type": "object",
@@ -1668,8 +1716,8 @@
       "ParticipantMetadata": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Free-form metadata about the participant. The shape varies by `participantType`:\n\n**`USER` participants**\n```\n{\n  \"isBot\": boolean,\n  \"participantIdType\": \"wf_guid\" | \"ims\" | \"email\",\n  \"wfUserId\": \"string\",\n  \"emailAddr\": \"string\"  // omitted when not available\n}\n```\n\n**`TEAMOB` (team) participants**\n```\n{\n  \"isBot\": boolean\n}\n```\n\nSee `ParticipantUserMetadata` and `ParticipantTeamMetadata` for the typed shapes. Additional context-specific properties may be present; consumers should treat unknown keys as informational.",
-        "oneOf": [
+        "description": "Metadata about the participant, set by the service from the user's or team's Workfront profile. The shape varies by `participantType`:\n\n**`USER` participants**\n```\n{\n  \"isBot\": boolean,\n  \"participantIdType\": \"wf_guid\" | \"ims\" | \"email\",\n  \"wfUserId\": \"string\",\n  \"emailAddr\": \"string\"  // omitted when not available\n}\n```\n\n**`TEAMOB` (team) participants**\n```\n{\n  \"isBot\": boolean\n}\n```\n\nSee `ParticipantUserMetadata` and `ParticipantTeamMetadata` for the typed shapes. Additional context-specific properties may be present; consumers should treat unknown keys as informational.",
+        "anyOf": [
           {
             "$ref": "#/components/schemas/ParticipantUserMetadata"
           },
@@ -1771,7 +1819,7 @@
         "type": "object",
         "additionalProperties": true,
         "description": "Workfront-derived enrichment fields for the participant. The shape depends on `participantType` \u2014 see `ParticipantUserWfMetadata` and `ParticipantTeamWfMetadata`.",
-        "oneOf": [
+        "anyOf": [
           {
             "$ref": "#/components/schemas/ParticipantUserWfMetadata"
           },
@@ -1812,7 +1860,7 @@
             }
           },
           "frameSyncStatus": {
-            "type": "string",
+            "type": "boolean",
             "nullable": true
           },
           "isEsmAsset": {
@@ -2008,16 +2056,16 @@
         "properties": {
           "isApprovalActive": {
             "type": "boolean",
-            "description": "Always `true` in this partial shape \u2014 no active approval exists but the asset is eligible."
+            "description": "Whether the requested asset is the current version of the document. `false` when the asset is not the current version."
           },
           "isEsmAsset": {
             "type": "boolean",
             "description": "Whether the asset is stored in external storage (ESM)."
           },
           "frameSyncStatus": {
-            "type": "string",
+            "type": "boolean",
             "nullable": true,
-            "description": "Frame sync status for the asset. `null` when no approval exists."
+            "description": "Whether the asset has finished syncing to Frame. `null` when there is no sync record for the asset."
           },
           "userInfo": {
             "type": "object",
@@ -2041,6 +2089,16 @@
             "isEditable": true,
             "hasLicenseAccess": true
           }
+        },
+        "not": {
+          "required": [
+            "approvalGuid"
+          ],
+          "properties": {
+            "approvalGuid": {
+              "type": "string"
+            }
+          }
         }
       },
       "EmptyApproval": {
@@ -2052,14 +2110,27 @@
             "description": "The asset ID that was queried."
           },
           "frameSyncStatus": {
-            "type": "string",
+            "type": "boolean",
             "nullable": true,
-            "description": "Always `null` when no approval exists."
+            "description": "Whether the asset has finished syncing to Frame. `null` when there is no sync record for the asset."
           }
         },
         "example": {
           "assetId": "69b1ea8500006ebab6a5eb8e622d4b09",
           "frameSyncStatus": null
+        },
+        "required": [
+          "assetId"
+        ],
+        "not": {
+          "required": [
+            "approvalGuid"
+          ],
+          "properties": {
+            "approvalGuid": {
+              "type": "string"
+            }
+          }
         }
       },
       "TemplateDeleteResult": {
@@ -2113,7 +2184,7 @@
           "id": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{32}$",
-            "description": "Workfront user or team ID."
+            "description": "The Workfront ID of the user (`wfUserId`), or of the team when `type` is `TEAMOB`. It is not the `identityGuid` that responses return."
           },
           "type": {
             "type": "string",
@@ -2125,11 +2196,11 @@
           },
           "role": {
             "type": "string",
-            "description": "Participant role on the stage (e.g. approver, reviewer)."
+            "description": "Participant role on the stage: `approver` or `reviewer`, in any letter case. Any other value returns `400`."
           },
           "participantMetadata": {
             "type": "object",
-            "description": "Optional free-form key/value metadata for this participant.",
+            "description": "Free-form metadata for this participant: at most 10 keys, keys up to 255 characters (no `.`, no `$` prefix, and not `__proto__`, `constructor`, `prototype`, `add`, `update` or `remove`), and string, number or boolean values (strings up to 255 characters).",
             "additionalProperties": {
               "oneOf": [
                 {
@@ -2175,15 +2246,16 @@
           "participants": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 50,
             "items": {
               "$ref": "#/components/schemas/GroupedApprovalParticipantInput"
             },
-            "description": "Approvers/reviewers on this stage."
+            "description": "Approvers/reviewers on this stage. At most 50."
           },
           "deadlineDate": {
             "type": "string",
             "format": "date-time",
-            "description": "Absolute deadline for the stage."
+            "description": "Absolute deadline for the stage. It is an ISO 8601 date-time in UTC. Convert from your local time first. For example, 5:00 PM MST (UTC\u22127) is `00:00:00Z` the next day."
           },
           "deadlineBusinessDays": {
             "type": "number",
@@ -2191,19 +2263,23 @@
           },
           "deadlineTimeOfDay": {
             "type": "object",
-            "description": "Time-of-day paired with deadlineBusinessDays.",
+            "description": "Time-of-day paired with deadlineBusinessDays. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
             "properties": {
               "hours": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23
               },
               "minutes": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59
               }
             }
           },
           "stageMetadata": {
             "type": "object",
-            "description": "Free-form stage-level metadata.",
+            "description": "Free-form stage metadata: at most 10 keys, keys up to 255 characters, string values up to 1,000 characters.",
             "additionalProperties": true
           },
           "config": {
@@ -2236,9 +2312,11 @@
           "stages": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 10,
             "items": {
               "$ref": "#/components/schemas/GroupedApprovalStageInput"
-            }
+            },
+            "description": "The ordered stages of the path. At most 10."
           }
         }
       },
@@ -2266,23 +2344,25 @@
           },
           "templateId": {
             "type": "string",
-            "description": "Optional approval-template ID to seed the workflow from."
+            "description": "Optional ID of an existing approval template. It is recorded on the grouped approval and counted toward the template's usage; stages are **not** copied from the template, so `paths` is still required. An unknown ID returns `404`."
           },
           "assets": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 25,
             "items": {
               "type": "string"
             },
-            "description": "Document version (DOCV) IDs to include in the group."
+            "description": "Document version (DOCV) IDs to include in the group. At most 25."
           },
           "paths": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 3,
             "items": {
               "$ref": "#/components/schemas/GroupedApprovalPathInput"
             },
-            "description": "One or more approval paths, each a sequence of stages."
+            "description": "One or more approval paths, each a sequence of stages. At most 3. The number of assets multiplied by the total number of stages across all paths cannot exceed 100; a larger group returns `400 GROUP_ASSET_STAGE_CAP_EXCEEDED` (for example, 25 assets allows at most 4 stages in total)."
           }
         }
       },
@@ -2292,50 +2372,187 @@
         "required": [
           "paths"
         ],
-        "description": "Full-state update of a grouped approval. Submit the complete set of paths (and optionally assets); the connector reconciles them against the current state, adding/updating/removing so the group matches what you send.",
+        "description": "The complete desired state of a grouped approval. The current state is compared with what you send and the difference is applied atomically (all or nothing). Paths and stages are matched by `pathId` and `stageId`: one that matches an existing item updates it, one that does not is created, and **any existing path or stage you leave out is removed**. `assets` is optional: send it to set the complete list of assets, or leave it out to keep the group's assets as they are. The order of `paths`, and of `stages` within a path, is the order the group ends up in. The group's size is also capped: the number of assets multiplied by the total number of stages across all paths cannot exceed 100, and a request that would grow the group past that returns `400 GROUP_ASSET_STAGE_CAP_EXCEEDED` (for example, 25 assets allows at most 4 stages in total).",
         "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255,
+            "description": "Optional new name for the grouped approval. Omit it to keep the current name."
+          },
           "paths": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 3,
             "items": {
-              "$ref": "#/components/schemas/GroupedApprovalPathInput"
+              "$ref": "#/components/schemas/GroupedApprovalUpdatePathInput"
             },
             "description": "The complete set of approval paths for the group."
           },
           "assets": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 25,
             "items": {
               "type": "string"
             },
-            "description": "The complete set of document version (DOCV) IDs the group should contain."
+            "description": "Optional. The complete set of document version (DOCV) IDs the group should contain; assets you leave out are removed. Omit the field to leave the group's assets unchanged. When you send `assets` it must list at least one ID; an empty list returns `400`."
           },
           "idempotencyKey": {
             "type": "string",
+            "minLength": 1,
             "maxLength": 128,
-            "description": "Optional client-supplied key that makes a retried request safe (the same key will not apply the update twice)."
+            "description": "Optional key identifying one logical save. When you retry the same request with the same key, new paths and stages that have no `pathId` or `stageId` are given the same generated IDs each time, so the retry does not create duplicates. It does not otherwise deduplicate requests; without it, retrying a request that creates paths or stages without IDs can create them twice."
+          }
+        }
+      },
+      "GroupedApprovalUpdatePathInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "stages"
+        ],
+        "description": "A path in a full-state update. A `pathId` that matches an existing path updates it; omitting `pathId`, or sending one that does not match, creates a new path. A new `pathId` that is already used by another path in the group (including a deleted one) returns `409 DUPLICATE_PATH_IN_GROUP`.",
+        "properties": {
+          "pathId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "description": "Path identifier. Matches an existing path, or names a new one."
+          },
+          "name": {
+            "type": "string",
+            "description": "Display name of the path."
+          },
+          "stages": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "$ref": "#/components/schemas/GroupedApprovalUpdateStageInput"
+            },
+            "description": "The complete, ordered set of stages for the path. Existing stages you leave out are removed."
+          }
+        }
+      },
+      "GroupedApprovalUpdateStageInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "participants"
+        ],
+        "description": "A stage in a full-state update. A `stageId` that matches an existing stage on the same path updates it; omitting `stageId`, or sending one that does not match, creates a new stage. A new `stageId` must be unique across every path in the group, otherwise the request fails with `409 STAGE_ID_CONFLICT`. For a stage that already exists, `parentIds` is ignored.\n\nOn a **new** path, send `parentIds` on every stage (an empty array for the first stage) or on none. If you send `parentIds`, every stage must also have a `stageId` so the stages can refer to each other, and a stage cannot list itself as a parent; otherwise the request fails with `400`. Triggers are derived from `parentIds` and cannot be supplied.",
+        "properties": {
+          "stageId": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{1,64}$",
+            "description": "Stage identifier. Matches an existing stage on this path, or names a new one."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "parentIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,64}$"
+            },
+            "description": "`stageId`s of the stages in this path that must complete before this one starts. An empty array for the first stage. Used only when the path is new."
+          },
+          "participants": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 50,
+            "items": {
+              "$ref": "#/components/schemas/GroupedApprovalParticipantInput"
+            },
+            "description": "Approvers/reviewers on this stage."
+          },
+          "deadlineDate": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Absolute deadline for the stage. `null` clears it. It is an ISO 8601 date-time in UTC. Convert from your local time first. For example, 5:00 PM MST (UTC\u22127) is `00:00:00Z` the next day."
+          },
+          "deadlineBusinessDays": {
+            "type": "number",
+            "description": "Deadline expressed as a number of business days from activation."
+          },
+          "deadlineTimeOfDay": {
+            "type": "object",
+            "description": "Time-of-day paired with deadlineBusinessDays. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
+            "properties": {
+              "hours": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23
+              },
+              "minutes": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59
+              }
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Free-form stage metadata: at most 10 keys, keys up to 255 characters, string values up to 1,000 characters. It is named `metadata` here, but `stageMetadata` in responses and on the create and add-stage requests. A `stageMetadata` field is ignored here.",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "config": {
+            "type": "object",
+            "description": "Stage configuration options.",
+            "additionalProperties": true
+          },
+          "customMessage": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500,
+            "description": "Optional message included in stage notifications. `null` when none."
           }
         }
       },
       "GroupedApprovalAssetsUpdate": {
         "type": "object",
-        "description": "Add and/or remove assets on a grouped approval in a single call.",
+        "description": "Add and/or remove assets on a grouped approval in a single call. Send at least one of `add` or `remove`. Removals are applied before additions.",
         "properties": {
           "add": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{32}$"
             },
-            "description": "Document version (DOCV) IDs to add."
+            "description": "Document version (DOCV) IDs to add, 1 to 25.",
+            "minItems": 1,
+            "maxItems": 25
           },
           "remove": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "string",
+              "pattern": "^[a-fA-F0-9]{32}$"
             },
-            "description": "Document version (DOCV) IDs to remove."
+            "description": "Document version (DOCV) IDs to remove, 1 to 25.",
+            "minItems": 1,
+            "maxItems": 25
           }
-        }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "add"
+            ]
+          },
+          {
+            "required": [
+              "remove"
+            ]
+          }
+        ]
       },
       "GroupedApprovalStagesUpdate": {
         "type": "object",
@@ -2381,7 +2598,7 @@
           "participants"
         ],
         "additionalProperties": false,
-        "description": "A new stage to add. Participants are set at add time; per-stage deadlines, config and customMessage are set afterwards via an update operation.",
+        "description": "A new stage to add. `deadlineDate` and `customMessage` are not accepted on add and return a `400`; set `deadlineDate` afterwards with an update operation.",
         "properties": {
           "stageId": {
             "type": "string",
@@ -2412,9 +2629,35 @@
               "$ref": "#/components/schemas/GroupedApprovalParticipantInput"
             }
           },
+          "deadlineBusinessDays": {
+            "type": "number",
+            "description": "Deadline expressed as a number of business days from activation."
+          },
+          "deadlineTimeOfDay": {
+            "type": "object",
+            "description": "Time-of-day paired with deadlineBusinessDays. The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC.",
+            "properties": {
+              "hours": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23
+              },
+              "minutes": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59
+              }
+            }
+          },
+          "config": {
+            "type": "object",
+            "description": "Stage configuration options.",
+            "additionalProperties": true
+          },
           "stageMetadata": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": true,
+            "description": "Free-form stage metadata: at most 10 keys, keys up to 255 characters, string values up to 1,000 characters."
           }
         }
       },
@@ -2424,7 +2667,7 @@
           "stageId"
         ],
         "additionalProperties": false,
-        "description": "Changes to an existing stage, identified by stageId. Note: pathId, parentIds and participants cannot be changed here - use the stage participants endpoint to change participants.",
+        "description": "Changes to an existing stage, identified by stageId. Only `name` and `deadlineDate` can be changed here; sending any other stage field (`pathId`, `parentIds`, `participants`, `deadlineBusinessDays`, `deadlineTimeOfDay`, `stageMetadata`, `config` or `customMessage`) returns a `400`. Use the stage participants endpoint to change participants and the stage metadata endpoint to change `stageMetadata`.",
         "properties": {
           "stageId": {
             "type": "string",
@@ -2437,21 +2680,8 @@
           },
           "deadlineDate": {
             "type": "string",
-            "format": "date-time"
-          },
-          "deadlineBusinessDays": {
-            "type": "number"
-          },
-          "stageMetadata": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "config": {
-            "type": "object",
-            "additionalProperties": true
-          },
-          "customMessage": {
-            "type": "string"
+            "format": "date-time",
+            "description": "Absolute deadline for the stage. It is an ISO 8601 date-time in UTC. Convert from your local time first. For example, 5:00 PM MST (UTC\u22127) is `00:00:00Z` the next day."
           }
         }
       },
@@ -2491,7 +2721,7 @@
           "id": {
             "type": "string",
             "pattern": "^[a-fA-F0-9]{32}$",
-            "description": "Workfront user or team ID."
+            "description": "The Workfront ID of the user (`wfUserId`), or of the team when `type` is `TEAMOB`. It is not the `identityGuid` that responses return."
           },
           "type": {
             "type": "string",
@@ -2505,14 +2735,16 @@
             "type": "string",
             "enum": [
               "approver",
-              "reviewer"
+              "reviewer",
+              "APPROVER",
+              "REVIEWER"
             ],
-            "description": "Participant role (case-insensitive; APPROVER/REVIEWER also accepted)."
+            "description": "Participant role: `approver` or `reviewer`. The upper-case forms are also accepted."
           },
           "participantMetadata": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Optional free-form metadata for the participant."
+            "description": "Free-form metadata for this participant: at most 10 keys, keys up to 255 characters (no `.`, no `$` prefix, and not `__proto__`, `constructor`, `prototype`, `add`, `update` or `remove`), and string, number or boolean values (strings up to 255 characters)."
           }
         }
       },
@@ -2526,7 +2758,8 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^[a-fA-F0-9]{32}$"
+            "pattern": "^[a-fA-F0-9]{32}$",
+            "description": "The Workfront ID of the user (`wfUserId`), or of the team when `type` is `TEAMOB`. It is not the `identityGuid` that responses return."
           },
           "type": {
             "type": "string",
@@ -2539,13 +2772,16 @@
             "type": "string",
             "enum": [
               "approver",
-              "reviewer"
-            ]
+              "reviewer",
+              "APPROVER",
+              "REVIEWER"
+            ],
+            "description": "Participant role: `approver` or `reviewer`. The upper-case forms are also accepted."
           },
           "participantMetadata": {
             "type": "object",
             "additionalProperties": false,
-            "description": "Metadata operations.",
+            "description": "Metadata operations, applied remove, then update, then add. Same key and value rules as when adding a participant, except that `add`, `update` and `remove` are allowed as key names; a participant holds at most 10 keys. `update` of a missing key is reported as `METADATA_KEY_NOT_FOUND`.",
             "properties": {
               "add": {
                 "type": "object",
@@ -2576,7 +2812,8 @@
         "properties": {
           "id": {
             "type": "string",
-            "pattern": "^[a-fA-F0-9]{32}$"
+            "pattern": "^[a-fA-F0-9]{32}$",
+            "description": "The Workfront ID of the user (`wfUserId`), or of the team when `type` is `TEAMOB`. It is not the `identityGuid` that responses return."
           },
           "type": {
             "type": "string",
@@ -2589,22 +2826,32 @@
       },
       "GroupedApprovalStageMetadataUpdate": {
         "type": "object",
-        "description": "Add/update/remove free-form metadata keys on a stage.",
+        "description": "Add, update or remove metadata keys on a stage. Operations are applied in the order remove, then update, then add.\n\n- `add` sets a key whether or not it exists already.\n- `update` changes an existing key. A missing key is reported as `METADATA_KEY_NOT_FOUND`. A value of `null` removes the key, and does nothing if it is already absent.\n- `remove` deletes the listed keys. A missing key is reported as `METADATA_KEY_NOT_FOUND`.\n\nValues are strings of at most 1,000 characters. Keys are at most 255 characters and cannot be `__proto__`, `constructor`, `prototype` or start with `$`. A stage holds at most 10 keys; a key that would go over is reported as `METADATA_LIMIT_EXCEEDED`. Each of `add`, `update` and `remove` accepts at most 50 keys per request.\n\nFailures are reported per key in `errors` of a `200` response; the other keys in the request are still applied.",
         "properties": {
           "add": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 1000
+            },
+            "maxProperties": 50
           },
           "update": {
             "type": "object",
-            "additionalProperties": true
+            "additionalProperties": {
+              "type": "string",
+              "nullable": true,
+              "maxLength": 1000
+            },
+            "maxProperties": 50
           },
           "remove": {
             "type": "array",
             "items": {
               "type": "string"
             },
-            "description": "Metadata keys to remove."
+            "description": "Metadata keys to remove.",
+            "maxItems": 50
           }
         }
       },
@@ -2881,7 +3128,7 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "description": "The deadline for the stage.",
+            "description": "The stage deadline, as an ISO 8601 date-time in UTC.",
             "example": "2025-01-16T12:00:00.000Z"
           },
           "deadlineBusinessDays": {
@@ -2893,13 +3140,17 @@
           "deadlineTimeOfDay": {
             "type": "object",
             "nullable": true,
-            "description": "The time of day the stage deadline falls on.",
+            "description": "The time of day the stage deadline falls on. The hours and minutes are in UTC.",
             "properties": {
               "hours": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23
               },
               "minutes": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59
               }
             }
           },
@@ -2914,9 +3165,9 @@
             "description": "Stage configuration. Null when not set."
           },
           "customMessage": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
-            "additionalProperties": true,
+            "maxLength": 500,
             "description": "Custom message shown to participants on the stage. Null when not set."
           },
           "stageMetadata": {
@@ -3211,7 +3462,8 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "example": "2025-01-16T12:00:00.000Z"
+            "example": "2025-01-16T12:00:00.000Z",
+            "description": "The stage deadline, as an ISO 8601 date-time in UTC."
           },
           "deadlineBusinessDays": {
             "type": "number",
@@ -3223,12 +3475,17 @@
             "nullable": true,
             "properties": {
               "hours": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 23
               },
               "minutes": {
-                "type": "number"
+                "type": "number",
+                "minimum": 0,
+                "maximum": 59
               }
-            }
+            },
+            "description": "The hours and minutes are in UTC, so convert from your local time. The default is 23:59 UTC."
           },
           "stageMetadata": {
             "type": "object",
@@ -3334,7 +3591,7 @@
               }
             ],
             "nullable": true,
-            "description": "The proxy identity that actually created the group (technical-account / proxy user). Matches creator when no proxying took place."
+            "description": "The technical account that made the call on behalf of `creator`. Absent or `null` when the caller and `creator` are the same identity."
           },
           "assets": {
             "type": "array",
@@ -3478,13 +3735,13 @@
           "cursor": {
             "type": "string",
             "nullable": true,
-            "description": "Opaque cursor for the next page (from the prior response). When a non-null cursor is sent, limit is ignored."
+            "description": "Accepted for compatibility with other views but currently has no effect: the `awaitingApprovals` view is not paginated."
           },
           "limit": {
             "type": "integer",
             "default": 20,
             "maximum": 100,
-            "description": "Page size for the first page, when no cursor is supplied. Defaults to 20, max 100."
+            "description": "Accepted for compatibility with other views but currently has no effect: the `awaitingApprovals` view returns a single bounded response."
           }
         }
       },
@@ -3494,7 +3751,7 @@
           "data",
           "cursor"
         ],
-        "description": "Cursor-paginated search results. The row shape under `data` is determined by the requested `view` (the `awaitingApprovals` view is shown in the example).",
+        "description": "Search results. The row shape under `data` is determined by the requested `view` (the `awaitingApprovals` view is shown in the example). The `awaitingApprovals` view is not paginated, so `cursor` is always `null`.",
         "properties": {
           "data": {
             "type": "array",
@@ -3507,18 +3764,18 @@
           "cursor": {
             "type": "string",
             "nullable": true,
-            "description": "Cursor for the next page of results. Null if there are no more results."
+            "description": "Always `null` for the `awaitingApprovals` view, which returns a single bounded response."
           }
         },
         "example": {
           "data": [
             {
-              "guid": "f47ac10b58cc4372a5670e02b2c3d479",
+              "groupedApprovalGuid": "f47ac10b58cc4372a5670e02b2c3d479",
               "imsOrgId": "1269195F66C8C84F0A494025@AdobeOrg",
               "customerId": "697be14f00392452aa729f7eb29059fe",
               "name": "Grouped Approval 123",
               "creator": {
-                "guid": "884313730004e310f947559b08e68b11",
+                "identityGuid": "884313730004e310f947559b08e68b11",
                 "type": "USER",
                 "references": [
                   {
@@ -3532,13 +3789,15 @@
                 ]
               },
               "createdAt": "2025-01-10T09:00:00.000Z",
+              "earliestDeadlineDate": "2025-01-16T12:00:00.000Z",
               "stages": [
                 {
                   "name": "Legal Review",
                   "stageId": "019dd8a16cb17a58a3b73fc991f16e07",
                   "deadlineDate": "2025-01-16T12:00:00.000Z",
+                  "isLocked": false,
                   "participant": {
-                    "guid": "698b60820000462ecf66c409d1248fa9",
+                    "identityGuid": "698b60820000462ecf66c409d1248fa9",
                     "type": "USER",
                     "references": [
                       {
@@ -3565,47 +3824,12 @@
         }
       },
       "GroupedApprovalUpdateResult": {
-        "type": "object",
-        "additionalProperties": true,
-        "description": "The full resolved state of the grouped approval after the update: the same paths/assets shape as the request, with every pathId/stageId/identityGuid/assetGuid filled in for newly-created entities. Kept permissive so a legitimate upstream response is never truncated.",
-        "properties": {
-          "paths": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": true
-            }
-          },
-          "assets": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": true
-            }
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/GroupedApproval"
           }
-        },
-        "example": {
-          "paths": [
-            {
-              "pathId": "primary",
-              "stages": [
-                {
-                  "stageId": "legal-review",
-                  "participants": [
-                    {
-                      "identityGuid": "698b60820000462ecf66c409d1248fa9"
-                    }
-                  ]
-                }
-              ]
-            }
-          ],
-          "assets": [
-            {
-              "assetGuid": "673fc29b0006af515e33732d1ebdc39a"
-            }
-          ]
-        }
+        ],
+        "description": "The full grouped approval as it stands after the update, in the same shape as `GET /grouped-approvals/{groupGuid}`, with an ID filled in for every path, stage, participant and asset that was created."
       },
       "GroupedApprovalAssetResult": {
         "type": "object",
@@ -3650,11 +3874,11 @@
           "code": {
             "type": "string",
             "description": "The error code for the failed item.",
-            "example": "ASSET_ALREADY_IN_GROUP"
+            "example": "ASSET_IN_ANOTHER_GROUP"
           },
           "message": {
             "type": "string",
-            "example": "Asset already belongs to another grouped approval."
+            "example": "Asset is already part of another grouped approval."
           },
           "assetGuid": {
             "type": "string",
@@ -3701,7 +3925,7 @@
             "type": "string",
             "example": "Could not resolve the participant identity."
           },
-          "guid": {
+          "identityGuid": {
             "type": "string",
             "example": "698b60820000462ecf66c409d1248fa9"
           },
@@ -3802,7 +4026,7 @@
         "additionalProperties": true,
         "description": "A participant echoed back from a stage-participants PATCH (fields relayed from upstream; may include more).",
         "properties": {
-          "guid": {
+          "identityGuid": {
             "type": "string",
             "example": "698b60820000462ecf66c409d1248fa9"
           },
@@ -3833,6 +4057,11 @@
                 "type": "email"
               }
             ]
+          },
+          "participantMetadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "The participant's metadata after the change. Present on `added` and `updated` items, not on `removed`."
           }
         }
       },
@@ -3873,7 +4102,7 @@
       "GroupedApprovalStageMetadataResult": {
         "type": "object",
         "additionalProperties": true,
-        "description": "Result of a stage-metadata add/update/remove PATCH. Per-key failures (e.g. METADATA_KEY_NOT_FOUND) are returned in `errors`; check `summary` for counts.",
+        "description": "Result of a stage-metadata add/update/remove PATCH. Per-key failures are returned in `errors` with a `code` of `INVALID_KEY`, `INVALID_VALUE`, `METADATA_KEY_NOT_FOUND` or `METADATA_LIMIT_EXCEEDED`; check `summary` for counts.",
         "properties": {
           "added": {
             "type": "object",
@@ -3952,7 +4181,7 @@
         }
       },
       "UnauthorizedResponse": {
-        "description": "Unauthorized \u2014 no valid auth credentials provided",
+        "description": "Unauthorized \u2014 the token is invalid or expired (returned by the Adobe I/O gateway), is not a technical account's token, or the endpoint is not available to technical accounts",
         "content": {
           "application/json": {
             "schema": {
@@ -3971,8 +4200,46 @@
           }
         }
       },
+      "ConflictResponse": {
+        "description": "Conflict \u2014 the request conflicts with the current state. Branch on `response.code` (see *Errors*). A conflict is not transient unless its `code` says it can be retried.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "UnprocessableEntityResponse": {
+        "description": "Unprocessable Entity \u2014 a participant or asset ID in the request could not be resolved, for example it does not match a Workfront user, team or document version, or it matches more than one. The reason is in `response.code`.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ServiceUnavailableResponse": {
+        "description": "Service Unavailable \u2014 a dependency was temporarily unavailable or a concurrent write conflicted. Retry with backoff; when a `Retry-After` header is present, wait at least that long.",
+        "headers": {
+          "Retry-After": {
+            "description": "How long to wait before retrying: a number of seconds, or an HTTP date. Not always present.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        },
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
       "BadRequestResponse": {
-        "description": "Bad Request \u2014 validation failure or invalid state",
+        "description": "Bad Request \u2014 validation failure, malformed or empty JSON body, or invalid state",
         "content": {
           "application/json": {
             "schema": {
@@ -3993,6 +4260,46 @@
       },
       "LengthRequiredResponse": {
         "description": "Length Required \u2014 the service requires a `Content-Length` header. Send an empty JSON object (`{}`) as the request body.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ForbiddenNotEditableResponse": {
+        "description": "Forbidden \u2014 the asset is not editable by the requesting user: it is not the current version, or the user does not have edit permission or the license required to edit it.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ForbiddenNotCurrentVersionResponse": {
+        "description": "Forbidden \u2014 decisions can only be made on the current version of the asset.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "GroupedApprovalsDisabledResponse": {
+        "description": "Forbidden \u2014 grouped approvals are not enabled for this tenant (`response.code` is `GROUPED_APPROVALS_DISABLED`).",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorResponse"
+            }
+          }
+        }
+      },
+      "ForbiddenTemplateResponse": {
+        "description": "Forbidden \u2014 the user does not have the Full license required to change templates, or does not have permission on this template (edit to change it, delete to delete it).",
         "content": {
           "application/json": {
             "schema": {
@@ -4059,10 +4366,7 @@
                     {
                       "$ref": "#/components/schemas/PartialApproval"
                     }
-                  ],
-                  "discriminator": {
-                    "propertyName": "approvalGuid"
-                  }
+                  ]
                 }
               }
             }
@@ -4085,8 +4389,8 @@
         "tags": [
           "Approvals"
         ],
-        "summary": "Create approval",
-        "description": "Creates an approval with the supplied stage data. The `stages` array in the body defines the approval structure and is used as-is. `templateId` is optional metadata: the caller is expected to have fetched the template separately (`GET /api/v1/templates/{templateId}`) and copied its stages into the request body. When `templateId` is supplied, it is recorded on the new approval and the corresponding template's `usageCount` is incremented and `lastUsedOnDate` is refreshed.",
+        "summary": "Create approval (deprecated)",
+        "description": "**Deprecated.** Use `POST /api/v1/approvals/{assetType}/{assetId}/stages` instead. It creates the approval and its stages in one call and is the supported path for every asset type; this operation only works for assets in external storage (ESM), does not work for other assets, and will be removed.\n\nCreates an approval with the supplied `paths`. The paths in the body define the approval structure and are used as-is. `templateId` is optional metadata: the caller is expected to have fetched the template separately (`GET /api/v1/templates/{templateId}`) and copied its `paths` into the request body. When `templateId` is supplied, it is recorded on the new approval and the corresponding template's `usageCount` is incremented and `lastUsedOnDate` is refreshed.",
         "operationId": "createApproval",
         "security": [
           {
@@ -4129,18 +4433,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "stages": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Stage definitions used to build a single-path approval. The server uses this array as-is \u2014 it does not look up or expand any referenced template. To create an approval from a template, the caller must fetch the template independently (`GET /api/v1/templates/{templateId}`), copy its `stages` into this array, and optionally pass the same `templateId` to record the source on the approval and increment its usage counter. Mutually exclusive with `paths` \u2014 provide one or the other.",
-                    "items": {
-                      "$ref": "#/components/schemas/StageBody"
-                    }
-                  },
                   "paths": {
                     "type": "array",
                     "minItems": 1,
-                    "description": "Path definitions used to build a multi-path approval, each with its own `stages`. Mutually exclusive with the top-level `stages` \u2014 provide one or the other.",
+                    "description": "The approval's paths, each with its own `stages`. The server uses them as-is: it does not look up or expand any referenced template. To create an approval from a template, fetch the template (`GET /api/v1/templates/{templateId}`), copy its `paths` here, and optionally pass the same `templateId` to record the source on the approval and increment its usage counter. At least one path is required.",
                     "items": {
                       "$ref": "#/components/schemas/ApprovalPathCreate"
                     }
@@ -4150,26 +4446,23 @@
                     "description": "ID of the template used to create this approval, if any. Recorded on the approval for traceability and used to increment the template's `usageCount` and refresh `lastUsedOnDate`. The server does **not** load stages from the template \u2014 the caller must fetch the template via `GET /api/v1/templates/{templateId}` and copy its stages into the `stages` array."
                   }
                 },
-                "anyOf": [
-                  {
-                    "required": [
-                      "stages"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "paths"
-                    ]
-                  }
+                "required": [
+                  "paths"
                 ]
               }
             }
           }
         },
         "responses": {
-          "201": {
-            "$ref": "#/components/responses/ApprovalResponse",
-            "description": "Approval created."
+          "200": {
+            "description": "Approval created. This deprecated operation returns `200`, not `201`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Approval"
+                }
+              }
+            }
           },
           "400": {
             "$ref": "#/components/responses/BadRequestResponse"
@@ -4177,10 +4470,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
-        }
+        },
+        "deprecated": true
       },
       "delete": {
         "tags": [
@@ -4233,11 +4533,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -4337,8 +4643,8 @@
         "tags": [
           "Stages"
         ],
-        "summary": "Create stages (auto-creates approval)",
-        "description": "Adds one or more stages to the approval for the given asset. If no approval exists for the asset yet, one is created automatically \u2014 so this endpoint can be used in place of `POST /api/v1/approvals/{assetType}/{assetId}` to create an approval and its initial stages in a single call. Returns 201 on success.",
+        "summary": "Create approval with paths",
+        "description": "Creates the approval for the asset from the given `paths`, and returns it with `201`. Every approval has at least one path, and each path has its own `stages`. This is the way to create an approval and its first stages in one call.\n\nIf the asset already has an approval, the paths you send are applied to it, and the response is still `201`:\n\n- A path whose `pathId` matches an existing path replaces that path's stages with the stages you send. A stage whose `stageId` matches an existing stage keeps its decisions and its lock state, and a stage you leave out of the path is removed.\n- A path without a `pathId` is added as a new path. Sending the same request twice adds the path twice, so send the `pathId` once the path exists.\n- An existing path you leave out of `paths` is removed.\n- A `pathId` that does not belong to the approval returns `404`. The same `pathId` twice in one request, or the same `stageId` in two paths, returns `400`.\n\nThe stages of each path must form a single sequential chain:\n\n- Exactly one stage has no `parentIds` (the first stage of the path), and each stage has at most one parent and at most one child.\n- `parentIds` can only name stages in the same path.\n- An `onCreate` trigger is allowed only on the first stage, and an `onStagesComplete` trigger only on later stages.\n- A trigger can only refer to stages in its own path, and never to its own stage.\n- Every participant must be an active user. Deactivated users return `400`.\n- On assets in external storage (ESM), a team cannot be added directly (`400 TEAM_NOT_ALLOWED_ON_ESM`), and `participantType` is required on every participant.\n\nViolations of the rules above return `400` with a message for each problem.",
         "operationId": "postStages",
         "security": [
           {
@@ -4381,18 +4687,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "stages": {
-                    "type": "array",
-                    "minItems": 1,
-                    "description": "Stage definitions used to build a single-path approval. Mutually exclusive with `paths` — provide one or the other.",
-                    "items": {
-                      "$ref": "#/components/schemas/StageBody"
-                    }
-                  },
                   "paths": {
                     "type": "array",
                     "minItems": 1,
-                    "description": "Path definitions used to build a multi-path approval, each with its own `stages`. Mutually exclusive with the top-level `stages` — provide one or the other.",
+                    "description": "The approval's paths, each with its own `stages`. At least one path is required.",
                     "items": {
                       "$ref": "#/components/schemas/ApprovalPathCreate"
                     }
@@ -4402,17 +4700,8 @@
                     "description": "ID of the template used to create this approval, if any."
                   }
                 },
-                "anyOf": [
-                  {
-                    "required": [
-                      "stages"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "paths"
-                    ]
-                  }
+                "required": [
+                  "paths"
                 ]
               }
             }
@@ -4428,8 +4717,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -4437,8 +4735,8 @@
         "tags": [
           "Stages"
         ],
-        "summary": "Update all stages",
-        "description": "Replaces all stages on an existing approval with the given stage data. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "summary": "Update approval paths",
+        "description": "Applies the given `paths` to the existing approval. A path whose `pathId` matches an existing path replaces that path's stages with the stages you send: a stage whose `stageId` matches an existing stage keeps its decisions and its lock state, and a stage you leave out is removed. A path without a `pathId` is added as a new path, and an existing path you leave out of `paths` is removed. A `pathId` that does not belong to the approval returns `404`. The chain, trigger and participant rules are the same as for `POST \u2026/stages`. Returns `404` if the asset has no approval. The asset must be in an editable state.\n\nThe response is the approval as stored. Unlike `GET`, it does not include `userInfo`, `isApprovalActive`, `frameSyncStatus` or the enriched participant details; call `GET` if you need them. On assets in external storage (ESM), teams are rejected; see *Teams on external-storage (ESM) assets*.",
         "operationId": "putStages",
         "security": [
           {
@@ -4481,33 +4779,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "stages": {
-                    "type": "array",
-                    "description": "Replacement stage definitions for a single-path approval. Mutually exclusive with `paths` — provide one or the other.",
-                    "items": {
-                      "$ref": "#/components/schemas/StageBody"
-                    }
-                  },
                   "paths": {
                     "type": "array",
                     "minItems": 1,
-                    "description": "Replacement path definitions for a multi-path approval, each with its own `stages`. Mutually exclusive with the top-level `stages` — provide one or the other.",
+                    "description": "The approval's paths, each with its own `stages`. At least one path is required.",
                     "items": {
                       "$ref": "#/components/schemas/ApprovalPathUpdate"
                     }
                   }
                 },
-                "anyOf": [
-                  {
-                    "required": [
-                      "stages"
-                    ]
-                  },
-                  {
-                    "required": [
-                      "paths"
-                    ]
-                  }
+                "required": [
+                  "paths"
                 ]
               }
             }
@@ -4523,8 +4805,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
@@ -4538,7 +4826,7 @@
           "Stages"
         ],
         "summary": "Update a stage",
-        "description": "Partially updates any field on the specified stage. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Partially updates any field on the specified stage. The asset must be in an editable state.\n\nFields you omit are left unchanged. `participants` are merged into the stage: a participant you send replaces the existing entry with the same `participantId` and `participantType`, and participants you do not send stay. `stageMetadata` and `config` are merged key by key, not replaced. To remove a participant use the delete participant operation. On assets in external storage (ESM), teams are rejected; see *Teams on external-storage (ESM) assets*.\n\n**Single-path approvals only.** This operation currently supports approvals with one path. On an approval with more than one path it returns an error. To change an approval that has more than one path, send the full set of paths with `PUT .../stages`.",
         "operationId": "patchStage",
         "security": [
           {
@@ -4597,8 +4885,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
@@ -4610,7 +4904,7 @@
           "Stages"
         ],
         "summary": "Delete a stage",
-        "description": "Deletes the specified stage from the approval. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Deletes the specified stage from the approval. The last remaining stage cannot be deleted (returns `400`); delete the approval instead. The asset must be in an editable state.\n\nThe response is the approval as stored. Unlike `GET`, it does not include `userInfo`, `isApprovalActive`, `frameSyncStatus` or the enriched participant details; call `GET` if you need them.\n\n**Single-path approvals only.** This operation currently supports approvals with one path. On an approval with more than one path it returns an error. To change an approval that has more than one path, send the full set of paths with `PUT .../stages`.",
         "operationId": "deleteStage",
         "security": [
           {
@@ -4659,8 +4953,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
@@ -4674,7 +4974,7 @@
           "Stages"
         ],
         "summary": "Lock a stage",
-        "description": "Locks the specified stage. All decisions on the stage must have been made before locking. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Locks the specified stage. All decisions on the stage must have been made before locking. The asset must be in an editable state.\n\nThe response is the approval as stored. Unlike `GET`, it does not include `userInfo`, `isApprovalActive`, `frameSyncStatus` or the enriched participant details; call `GET` if you need them.\n\n**Single-path approvals only.** This operation currently supports approvals with one path. On an approval with more than one path it returns an error. Locking is not available on multi-path approvals.",
         "operationId": "lockStage",
         "security": [
           {
@@ -4723,14 +5023,20 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
           },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
@@ -4753,7 +5059,7 @@
           "Stages"
         ],
         "summary": "Unlock a stage",
-        "description": "Unlocks the specified stage, making it editable again. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Unlocks the specified stage, making it editable again. The asset must be in an editable state.\n\nThe response is the approval as stored. Unlike `GET`, it does not include `userInfo`, `isApprovalActive`, `frameSyncStatus` or the enriched participant details; call `GET` if you need them.\n\n**Single-path approvals only.** This operation currently supports approvals with one path. On an approval with more than one path it returns an error. Unlocking is not available on multi-path approvals.",
         "operationId": "unlockStage",
         "security": [
           {
@@ -4802,14 +5108,20 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
           },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
@@ -4822,6 +5134,243 @@
                 "properties": {}
               }
             }
+          }
+        }
+      }
+    },
+    "/api/v1/approvals/decisions": {
+      "put": {
+        "tags": [
+          "Decisions"
+        ],
+        "summary": "Make decisions on multiple approvals",
+        "operationId": "makeBulkDecisions",
+        "description": "Records the requesting user's decision on several assets in one request. Each item names an asset and a decision; set `stageId` to decide a single stage, or omit it to apply the decision to all of the asset's eligible active stages. Items are processed independently, in request order. The response has one result per decided stage, not one per item: an item without `stageId` that applies to three stages returns three results, one for each. An item that fails before its stages are chosen, for example because the approval is not found, returns a single error result. Match results to items by `assetType`, `assetId` and `stageId`, and check `success` on each result rather than relying on the HTTP status alone. A decision that already exists is updated.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "includeApproval",
+            "in": "query",
+            "required": false,
+            "description": "When `true`, each successful result also includes the updated approval in `approval`. Defaults to `false`.",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "minItems": 1,
+                "description": "One item per decision to record.",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "assetType",
+                    "assetId",
+                    "decision"
+                  ],
+                  "properties": {
+                    "assetType": {
+                      "type": "string",
+                      "description": "The type of asset the decision is for (for example `DOCV`)."
+                    },
+                    "assetId": {
+                      "type": "string",
+                      "description": "The ID of the asset the decision is for."
+                    },
+                    "decision": {
+                      "type": "string",
+                      "description": "The decision being made.",
+                      "enum": [
+                        "approved",
+                        "needs work",
+                        "approved with changes",
+                        "reviewed"
+                      ]
+                    },
+                    "stageId": {
+                      "type": "string",
+                      "description": "Optional stage ID. If omitted, the decision is applied to all eligible active stages."
+                    },
+                    "version": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ],
+                      "description": "Optional version reference, used when the approval is resolved through the asset's version stack."
+                    }
+                  }
+                },
+                "example": [
+                  {
+                    "assetType": "DOCV",
+                    "assetId": "69b1ea8500006ebab6a5eb8e622d4b09",
+                    "decision": "approved"
+                  },
+                  {
+                    "assetType": "DOCV",
+                    "assetId": "69b1ea8500006ebab6a5eb8e622d4b10",
+                    "decision": "needs work",
+                    "stageId": "019dd8a16cb17a58a3b73fc991f16e07"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "One result per decided stage, grouped by item in request order. An item that fails before its stages are chosen returns one error result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "required": [
+                          "assetType",
+                          "assetId",
+                          "stageId",
+                          "success"
+                        ],
+                        "properties": {
+                          "assetType": {
+                            "type": "string"
+                          },
+                          "assetId": {
+                            "type": "string"
+                          },
+                          "stageId": {
+                            "type": "string",
+                            "description": "The stage the decision was recorded on."
+                          },
+                          "success": {
+                            "type": "boolean",
+                            "enum": [
+                              true
+                            ]
+                          },
+                          "approval": {
+                            "type": "object",
+                            "additionalProperties": true,
+                            "description": "The updated approval. Present only when `includeApproval` is `true`."
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "required": [
+                          "assetType",
+                          "assetId",
+                          "stageId",
+                          "success",
+                          "error"
+                        ],
+                        "properties": {
+                          "assetType": {
+                            "type": "string"
+                          },
+                          "assetId": {
+                            "type": "string"
+                          },
+                          "stageId": {
+                            "type": "string",
+                            "nullable": true,
+                            "description": "The stage the item named, or `null` if it did not name one."
+                          },
+                          "success": {
+                            "type": "boolean",
+                            "enum": [
+                              false
+                            ]
+                          },
+                          "error": {
+                            "type": "object",
+                            "required": [
+                              "code",
+                              "message"
+                            ],
+                            "additionalProperties": true,
+                            "properties": {
+                              "code": {
+                                "type": "string",
+                                "description": "Why the decision could not be recorded. One of `APPROVAL_NOT_FOUND`, `STAGE_NOT_FOUND`, `STAGE_NOT_STARTED`, `APPROVAL_LOCKED`, `STAGE_LOCKED`, `PARTICIPANT_NOT_FOUND`, `INVALID_DECISION_FOR_ROLE`, `GROUP_WITHDRAWN`, `VERSION_CONFLICT`, `VERSION_NOT_FOUND`, `ASSET_TYPE_FORBIDDEN` or `UNKNOWN`."
+                              },
+                              "message": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "example": [
+                    {
+                      "assetType": "DOCV",
+                      "assetId": "69b1ea8500006ebab6a5eb8e622d4b09",
+                      "stageId": "019dd8a16cb17a58a3b73fc991f16e06",
+                      "success": true
+                    },
+                    {
+                      "assetType": "DOCV",
+                      "assetId": "69b1ea8500006ebab6a5eb8e622d4b10",
+                      "stageId": "019dd8a16cb17a58a3b73fc991f16e07",
+                      "success": false,
+                      "error": {
+                        "code": "APPROVAL_NOT_FOUND",
+                        "message": "Approval not found"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         }
       }
@@ -4910,11 +5459,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotCurrentVersionResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -4969,11 +5524,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotCurrentVersionResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -5029,6 +5590,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "required": [
+                  "decision"
+                ],
                 "properties": {
                   "decision": {
                     "type": "string",
@@ -5055,11 +5619,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotCurrentVersionResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -5117,11 +5687,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotCurrentVersionResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -5230,7 +5806,7 @@
           "Participants"
         ],
         "summary": "Add participants",
-        "description": "Adds one or more participants to an approval. If the approval does not yet exist, one will be created. If a participant already exists they will be merged and updated. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Adds one or more participants to an existing approval; returns `404` if the approval does not exist (create it first with `POST .../stages`). If a participant already exists they will be merged and updated. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations. On assets in external storage (ESM), teams are rejected; see *Teams on external-storage (ESM) assets*.\n\n**Single-path approvals only.** This operation currently supports approvals with one path. On an approval with more than one path it returns an error. To change an approval that has more than one path, send the full set of paths with `PUT .../stages`.",
         "operationId": "addParticipants",
         "security": [
           {
@@ -5289,8 +5865,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
@@ -5304,7 +5886,7 @@
           "Participants"
         ],
         "summary": "Delete participant",
-        "description": "Removes a participant from the approval. If all participants are removed, the stage and approval are also deleted. The asset must be in an editable state. Check `userInfo.isEditable` on the approval response to determine whether the requesting user can perform write operations.",
+        "description": "Removes a participant from every stage of the approval they are on. A stage left with no participants is removed, and if no stages remain the approval is deleted. The asset must be in an editable state.\n\n**Single-path approvals only.** This operation currently supports approvals with one path. On an approval with more than one path it returns an error. To change an approval that has more than one path, send the full set of paths with `PUT .../stages`.",
         "operationId": "deleteParticipant",
         "security": [
           {
@@ -5370,8 +5952,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
@@ -5441,14 +6029,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
@@ -5547,14 +6138,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
@@ -5636,14 +6230,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
@@ -5742,14 +6339,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenNotEditableResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
-          "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
-          },
           "411": {
             "$ref": "#/components/responses/LengthRequiredResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
           }
         },
         "requestBody": {
@@ -5772,7 +6372,7 @@
           "Templates"
         ],
         "summary": "List templates",
-        "description": "Returns all approval templates visible to the current user.",
+        "description": "Returns the approval templates the current user can view: the user's own templates, templates shared with the user, and templates shared with everyone in the customer. Users can edit any template they can view. Use `filters` to narrow to one of those sets. Returns `404` if the customer has no templates.",
         "operationId": "getTemplates",
         "security": [
           {
@@ -5780,6 +6380,30 @@
           }
         ],
         "parameters": [
+          {
+            "name": "filters",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "owned",
+                "shared"
+              ],
+              "default": "all"
+            },
+            "description": "Which templates to return. `all` is every template the user can view. `owned` is the templates the user owns. `shared` is the templates shared with the user that they do not own."
+          },
+          {
+            "name": "filterByMyCompany",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "When `true`, only templates whose `companyId` matches the requesting user's company are returned."
+          },
           {
             "$ref": "#/components/parameters/XApiKey"
           },
@@ -5827,8 +6451,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -5837,7 +6467,7 @@
           "Templates"
         ],
         "summary": "Create template",
-        "description": "Creates an approval template. A customer can create a maximum of 1000 templates. Requires template management permissions.",
+        "description": "Creates an approval template. A customer can create a maximum of 1000 templates. Requires a Full license. The new template is private to its creator unless you share it with `sharedWith`.",
         "operationId": "createTemplate",
         "security": [
           {
@@ -5894,8 +6524,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenTemplateResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -5957,7 +6593,10 @@
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
-            "description": "Internal Server Error. Also returned when the template ID does not exist \u2014 the service currently returns 500 instead of 404 for unrecognized IDs."
+            "description": "Internal Server Error. Also returned when `templateId` is not a valid ID. An ID that is well formed but unknown returns `404`."
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -5965,8 +6604,8 @@
         "tags": [
           "Templates"
         ],
-        "summary": "Update template",
-        "description": "Partially updates an approval template. Requires template management permissions.",
+        "summary": "Replace template",
+        "description": "Replaces an approval template with the supplied body. Use `PATCH` to change only some fields. Requires a Full license, and permission to edit the template. The owner and anyone the template is shared with can edit it. A path in `paths` with a `pathId` updates that path in place, and a path without one is added. `sharedWith` is replaced by the list you send, and left unchanged if you omit it.",
         "operationId": "putTemplate",
         "security": [
           {
@@ -6026,11 +6665,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenTemplateResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -6039,7 +6684,7 @@
           "Templates"
         ],
         "summary": "Update template",
-        "description": "Partially updates an approval template. Requires template management permissions.",
+        "description": "Partially updates an approval template. Requires a Full license, and permission to edit the template. The owner and anyone the template is shared with can edit it. A path in `paths` with a `pathId` updates that path in place, and a path without one is added. No field is required; send only the ones to change. `sharedWith`, if sent, replaces the whole list; omit it to leave sharing unchanged.",
         "operationId": "patchTemplate",
         "security": [
           {
@@ -6099,11 +6744,17 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenTemplateResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -6112,7 +6763,7 @@
           "Templates"
         ],
         "summary": "Delete template",
-        "description": "Deletes a single approval template. Requires template management permissions.",
+        "description": "Deletes a single approval template. Requires a Full license and permission to delete the template.",
         "operationId": "deleteTemplate",
         "security": [
           {
@@ -6146,14 +6797,20 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Template deleted successfully."
+          "204": {
+            "description": "Template deleted successfully. No response body."
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenTemplateResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -6164,7 +6821,7 @@
           "Templates"
         ],
         "summary": "Bulk delete templates",
-        "description": "Deletes multiple approval templates in one call. IDs are comma-separated in the path. Requires template management permissions.",
+        "description": "Deletes multiple approval templates in one call. IDs are comma-separated in the path. Requires a Full license. Each ID is checked for delete permission on its own: IDs you may delete are deleted, and the rest are reported in `failed`. `errors` lists IDs whose permission check could not run because the authorization service was unavailable; retry those. If every check fails, the call returns `503` and nothing is deleted.",
         "operationId": "bulkDeleteTemplates",
         "security": [
           {
@@ -6218,8 +6875,14 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/ForbiddenTemplateResponse"
+          },
           "500": {
             "description": "Returned when one or more supplied IDs are not valid MongoDB ObjectId format strings. An ID that fails the permission check is not an error — it is returned in the 200 response's `failed` array instead. Note: a valid-format ID that passes the permission check but does not match any template is reported in `deleted`, since the upstream delete does not report per-ID outcomes."
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -6230,7 +6893,7 @@
           "Bots"
         ],
         "summary": "List bot reviewers",
-        "description": "Returns a paginated list of Workfront bot users that are eligible to be added as reviewer participants on an approval. A bot reviewer is invoked automatically when its assigned stage becomes active.",
+        "description": "Returns a paginated list of Workfront bot users that are eligible to be added as reviewer participants on an approval. A bot reviewer is invoked automatically when its assigned stage becomes active. Both enabled and disabled bots are returned; check `isActive`. Only bots of type `doc-brand-reviewer` are listed. A `limit` outside 1 to 100, or a non-integer `page` or `limit`, returns `400`.",
         "operationId": "getBots",
         "security": [
           {
@@ -6366,6 +7029,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
           },
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
@@ -6514,7 +7180,7 @@
           "Approvals"
         ],
         "summary": "Bulk lookup approvals by asset ID",
-        "description": "Simple bulk lookup of approvals for a known list of asset IDs within a specific asset type. Provide the asset type in the path and an array of `assetIds` in the body to retrieve their approvals in a single call. If no body is supplied, the endpoint returns approvals for projects owned by the requesting user that are currently in review. Asset IDs with no approval are included in the response array as a stub containing only `assetId` and `frameSyncStatus: null`.",
+        "description": "Looks up the approvals for a list of asset IDs of one asset type. Provide the asset type in the path and the `assetIds` in the body. The response normally has one element per requested ID, in the order you sent them. If the service cannot read Frame sync status, it returns the approvals in its own order with no stubs for assets that have no approval, so match results to assets by `assetId`, not by position. An asset with no approval is returned as a stub with only `assetId` and `frameSyncStatus`. `frameSyncStatus` is `true` or `false` once Frame sync has been recorded for the asset, and `null` otherwise.\n\n`assetIds` is required. A request with no body returns `400`. A body without `assetIds` is not supported and currently fails with `500`.\n\nWithout `view`, each approval has summary fields only, such as `approvalGuid`, `assetId`, `status`, `decision`, the lock state and dates, and no stages or participants. Set `view` to `full` to include them. If you set `view`, the matching approvals are read in pages of 100 and a request that matches more than 1,000 returns `500`. To filter by project, folder, status or participant instead, use `POST /api/v1/search/approvals`.",
         "operationId": "bulkLookupApprovalsByAssetType",
         "security": [
           {
@@ -6566,8 +7232,19 @@
                     "enum": [
                       "DOCV"
                     ]
+                  },
+                  "view": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "full_with_paths"
+                    ],
+                    "description": "Optional response shape. `full_with_paths` also includes each parallel path's own stages and structure in `paths`. Omit for the default shape."
                   }
-                }
+                },
+                "required": [
+                  "assetIds"
+                ]
               }
             }
           },
@@ -6601,7 +7278,7 @@
             }
           },
           "400": {
-            "description": "Bad Request. Returned for validation errors, or when the request body is an empty object (`{}`).",
+            "description": "Bad Request. Returned when the body is missing or does not match the schema, for example an unknown `view`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6614,7 +7291,14 @@
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "500": {
-            "$ref": "#/components/responses/InternalServerErrorResponse"
+            "description": "Internal Server Error. Also returned when the body has no `assetIds`, which is not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -6659,7 +7343,8 @@
             "in": "query",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             },
             "description": "Workfront parent object ID (e.g. `5f9a1c2b0000d4e1a1b2c3d4e5f60718`)."
           },
@@ -6701,7 +7386,7 @@
         ],
         "summary": "Create grouped approval",
         "operationId": "createGroupedApproval",
-        "description": "Creates a grouped approval: a set of document versions that move together through one or more approval paths, each an ordered sequence of stages with its own participants. Optionally associate it with a Workfront parent object via `parentId`/`objCode`, or seed it from a `templateId`.",
+        "description": "Creates a grouped approval: a set of document versions that move together through one or more approval paths, each an ordered sequence of stages with its own participants. Optionally associate it with a Workfront parent object via `parentId`/`objCode`, or record an existing approval template with `templateId` (the template is not used to build the stages).\n\nStages are created with `config.autoLockEnabled` set to `true` unless you send `false`. `creator` is the user named by `wf-userid`, or the technical account's own Workfront user if you leave `wf-userid` out. When you send a `wf-userid` and the technical account acts as that user, the response also includes `realCreator`, the technical account's identity; otherwise `realCreator` is absent or `null`. On assets in external storage (ESM), teams are rejected; see *Teams on external-storage (ESM) assets*.",
         "security": [
           {
             "Bearer": []
@@ -6757,8 +7442,23 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -6880,6 +7580,9 @@
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       },
@@ -6889,7 +7592,7 @@
         ],
         "summary": "Update grouped approval (full state)",
         "operationId": "updateGroupedApproval",
-        "description": "Applies a full-state update to a grouped approval: the submitted structure (assets, paths, stages, participants) is reconciled against the current one - adding, updating and removing so the group matches what you send.",
+        "description": "Replaces the complete desired state of a grouped approval (name, paths, stages, participants and assets) in one call. The current state is compared with the request and the difference is applied atomically: either every change is made or none are.\n\nPaths and stages are matched by `pathId` and `stageId`. One that matches updates the existing item, one that does not is created, and any existing path or stage you leave out is removed. Assets are only reconciled when you send `assets`: the list you send is the complete set (assets you leave out are removed), and leaving `assets` out keeps the group's assets as they are. To change only part of a group, use the narrower operations instead: rename, assets, stages, stage participants or stage metadata.\n\nA stage that is locked cannot be changed (`409`), and `assets`, when sent, must list at least one ID (an empty list returns `400`). Use `idempotencyKey` to make a retried save safe. On assets in external storage (ESM), teams are rejected; see *Teams on external-storage (ESM) assets*. If a save fails with `503`, read the group again with `GET` before you retry. Someone else may have changed it, and resending a stale full state overwrites their change.",
         "security": [
           {
             "Bearer": []
@@ -6948,11 +7651,23 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
+          "422": {
+            "$ref": "#/components/responses/UnprocessableEntityResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -7038,7 +7753,7 @@
         ],
         "summary": "Search grouped approvals",
         "operationId": "searchGroupedApprovals",
-        "description": "Searches grouped approvals using a named `view`. The default `awaitingApprovals` view returns groups where the requesting user (or one of the supplied `teamIds`) is a participant on the active stage and a decision is still required. Results are cursor-paginated: send `limit` for the first page, then the returned `cursor` for each subsequent page.",
+        "description": "Searches grouped approvals using a named `view`. The default `awaitingApprovals` view returns groups where the requesting user (or one of the supplied `teamIds`) is a participant on the active stage and a decision is still required. The view returns a single bounded response (up to 2000 groups) and is **not paginated**: `limit` and `cursor` are accepted but have no effect, and the response `cursor` is always `null`.",
         "security": [
           {
             "Bearer": []
@@ -7107,7 +7822,7 @@
         ],
         "summary": "Manage assets on a grouped approval",
         "operationId": "manageGroupedApprovalAssets",
-        "description": "Adds and/or removes document versions on a grouped approval. Send `add` and/or `remove` arrays of document version IDs.",
+        "description": "Adds and/or removes document versions on a grouped approval. Send `add` and/or `remove` arrays of document version IDs. A grouped approval holds at most 25 assets, so an add that would go over returns `400 GROUP_ASSET_CAP_EXCEEDED`. Adding assets while a stage is decided returns `409 GROUP_HAS_DECIDED_STAGE`, and removing the last asset returns `409 GROUP_WOULD_BE_EMPTY`; delete the grouped approval instead.",
         "security": [
           {
             "Bearer": []
@@ -7166,11 +7881,20 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -7182,7 +7906,7 @@
         ],
         "summary": "Manage stage participants",
         "operationId": "manageGroupedApprovalStageParticipants",
-        "description": "Adds, updates and/or removes participants on a specific stage of a grouped approval. New participants (`add`/`update`) are resolved to Workfront users or teams; `remove` matches on identity.",
+        "description": "Adds, updates and/or removes participants on a specific stage of a grouped approval. New participants (`add`/`update`) are resolved to Workfront users or teams; `remove` matches on identity. Changes are applied in the order remove, then update, then add. Send at least one of `add`, `update` or `remove`, with at most 50 entries in each. Participants are identified by `id` (and `type` for a team, which defaults to `USER`); a `remove` for a team must send `type: TEAMOB`. A `200` can still carry per-item failures: check `errors` and `summary`.",
         "security": [
           {
             "Bearer": []
@@ -7244,11 +7968,20 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -7260,7 +7993,7 @@
         ],
         "summary": "Manage stage metadata",
         "operationId": "manageGroupedApprovalStageMetadata",
-        "description": "Adds, updates and/or removes free-form metadata keys on a specific stage of a grouped approval.",
+        "description": "Adds, updates and/or removes free-form metadata keys on a specific stage of a grouped approval. See the request body for the rules and limits.",
         "security": [
           {
             "Bearer": []
@@ -7322,11 +8055,133 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
           },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/grouped-approvals/{groupGuid}/name": {
+      "patch": {
+        "tags": [
+          "Grouped Approvals"
+        ],
+        "summary": "Rename a grouped approval",
+        "operationId": "updateGroupedApprovalName",
+        "description": "Renames the grouped approval. Only the group-level name changes: paths, stages and assets are not touched, and the rename works even when stages are locked or already decided. Sending the current name again is a no-op. Names are not required to be unique.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          },
+          {
+            "$ref": "#/components/parameters/GroupGuid"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255,
+                    "description": "The new name of the grouped approval."
+                  }
+                },
+                "example": {
+                  "name": "Q4 Campaign Assets"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "groupedApprovalGuid": {
+                      "type": "string",
+                      "description": "GUID of the renamed grouped approval."
+                    },
+                    "name": {
+                      "type": "string",
+                      "description": "The grouped approval's name after the rename."
+                    }
+                  },
+                  "example": {
+                    "groupedApprovalGuid": "9f8b60820000462ecf66c409d1248fa9",
+                    "name": "Q4 Campaign Assets"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
+          },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
           }
         }
       }
@@ -7397,8 +8252,257 @@
           "401": {
             "$ref": "#/components/responses/UnauthorizedResponse"
           },
+          "403": {
+            "$ref": "#/components/responses/GroupedApprovalsDisabledResponse"
+          },
           "404": {
             "$ref": "#/components/responses/NotFoundResponse"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictResponse"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerErrorResponse"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailableResponse"
+          }
+        }
+      }
+    },
+    "/api/v1/search/approvals": {
+      "post": {
+        "tags": [
+          "Search"
+        ],
+        "summary": "Search approvals",
+        "operationId": "searchApprovals",
+        "description": "Searches the approvals in your Workfront customer, filtered by any combination of the fields below, and returns one page of results. Send a JSON body; `{}` runs a search with no filters. Pass the `cursor` from a response back in the next request to get the following page; `cursor` is `null` when there are no more results.\n\nThe results are not limited to approvals the requesting user is on. `view` set to `personalApprovals` limits them to that user, and `projectId` and `folderId` only match documents the user can view.\n\n`projectId` and `folderId` are resolved to the document versions in that project or folder, so a project with no documents returns an empty `data` array, and a project or folder that has no document matching your `assetType` or `assetId` returns `400`. To look up approvals for specific asset IDs, use `POST /api/v1/approvals/search/{assetType}`.",
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/XApiKey"
+          },
+          {
+            "$ref": "#/components/parameters/XGwSubdomain"
+          },
+          {
+            "$ref": "#/components/parameters/WfCustomerId"
+          },
+          {
+            "$ref": "#/components/parameters/WfUserId"
+          },
+          {
+            "$ref": "#/components/parameters/WfLane"
+          },
+          {
+            "$ref": "#/components/parameters/XRequestId"
+          },
+          {
+            "$ref": "#/components/parameters/XCorrelationId"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Only approvals on documents in this Workfront project (one ID or a list)."
+                  },
+                  "folderId": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "nullable": true
+                        }
+                      }
+                    ],
+                    "description": "Only approvals on documents in this Workfront folder. Use `null` for the root folder of the project."
+                  },
+                  "assetType": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Only approvals on this asset type (for example `DOCV`)."
+                  },
+                  "assetId": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Only approvals on these asset IDs."
+                  },
+                  "approvalStatus": {
+                    "type": "string",
+                    "description": "Only approvals with this status."
+                  },
+                  "creatorId": {
+                    "type": "string",
+                    "description": "Only approvals created by this user."
+                  },
+                  "createdDateFrom": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Only approvals created at or after this time."
+                  },
+                  "createdDateTo": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Only approvals created at or before this time."
+                  },
+                  "productId": {
+                    "type": "string",
+                    "description": "Only approvals for this product."
+                  },
+                  "stageStatus": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Only approvals that have a stage with this status."
+                  },
+                  "stageDeadlineDateFrom": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Only stages with a deadline at or after this time."
+                  },
+                  "stageDeadlineDateTo": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Only stages with a deadline at or before this time."
+                  },
+                  "participantType": {
+                    "type": "string",
+                    "description": "Only approvals with a participant of this type."
+                  },
+                  "participantId": {
+                    "type": "string",
+                    "description": "Only approvals this participant is on."
+                  },
+                  "participantRole": {
+                    "type": "string",
+                    "description": "Only approvals where a participant has this role."
+                  },
+                  "participantStatus": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    ],
+                    "description": "Only approvals where a participant has this status."
+                  },
+                  "overdue": {
+                    "type": "boolean",
+                    "description": "When `true`, only approvals with a stage deadline in the past. If `stageDeadlineDateTo` is missing or in the future it is set to the current time."
+                  },
+                  "view": {
+                    "type": "string",
+                    "default": "full",
+                    "description": "Shape of the result rows.\n\n- `full` \u2014 the complete approval, with its stages and participants (default).\n- `full_with_paths` \u2014 `full`, plus each parallel path's own stages and structure in `paths`.\n- `personalApprovals` \u2014 only approvals the requesting user is a participant on.\n- `participants` \u2014 one row per approval, like `full`, but each stage lists only the participants that match your participant filters, and stages with no matching participant are left out. Rows keep `assetId`."
+                  },
+                  "cursor": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Cursor from the previous response, to get the next page. Omit for the first page."
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 20,
+                    "description": "Page size, 1 to 100."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      },
+                      "description": "Result rows, in the shape of the requested `view`."
+                    },
+                    "cursor": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "Cursor for the next page, or `null` if there are no more results."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestResponse"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedResponse"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerErrorResponse"
